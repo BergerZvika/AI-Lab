@@ -1,0 +1,3326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDP Tutorial — Interactive 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Three.js global build + OrbitControls (classic scripts — work from file:// unlike ES modules) -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090f;--bg2:#0e0f1a;--bg3:#141528;
+  --blue:#4f8ef7;--teal:#00d4aa;--coral:#ff6b6b;--gold:#ffd43b;--purple:#b06eff;--green:#51cf66;
+  --text:#e8eaf6;--muted:#7b7fa0;--border:rgba(255,255,255,0.07);
+  --glow-blue:0 0 24px rgba(79,142,247,0.45);--glow-teal:0 0 24px rgba(0,212,170,0.45);
+  --glow-coral:0 0 24px rgba(255,107,107,0.45);--r:12px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+#particles{position:fixed;inset:0;z-index:0;pointer-events:none}
+.page-wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px 80px}
+
+/* ── HEADER ── */
+header{text-align:center;padding:40px 0 24px}
+.chapter-badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  color:var(--teal);border:1px solid rgba(0,212,170,0.3);border-radius:40px;padding:5px 16px;
+  margin-bottom:14px;background:rgba(0,212,170,0.06)}
+h1{font-size:clamp(2rem,4.5vw,3.2rem);font-weight:800;line-height:1.1;
+  background:linear-gradient(135deg,#e8eaf6 0%,var(--blue) 50%,var(--teal) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+header p{color:var(--muted);font-size:1rem;max-width:540px;margin:0 auto;line-height:1.7}
+
+/* ── TAB BAR ── */
+.tab-bar{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:5px;margin-bottom:32px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab-bar::-webkit-scrollbar{height:0}
+.tab{flex:1;min-width:110px;padding:9px 12px;border-radius:8px;border:none;background:transparent;
+  color:var(--muted);font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;
+  cursor:pointer;transition:all .2s;white-space:nowrap;letter-spacing:.5px}
+.tab:hover{background:rgba(255,255,255,0.05);color:var(--text)}
+.tab.active{background:var(--bg3);color:var(--text);box-shadow:0 2px 12px rgba(0,0,0,0.4)}
+
+/* ── PANELS ── */
+.panel{display:none}.panel.active{display:block}
+
+/* ── PROGRESS BAR ── */
+.progress-bar{position:fixed;top:0;left:0;height:3px;
+  background:linear-gradient(to right,var(--blue),var(--teal));z-index:100;
+  border-radius:0 3px 3px 0;transition:width .4s}
+
+/* ── CHAPTER DOTS ── */
+
+/* ── SECTION TITLE ── */
+.section-title{font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:20px;
+  display:flex;align-items:center;gap:10px}
+.section-title::before{content:'';display:block;width:4px;height:20px;border-radius:4px;
+  background:linear-gradient(to bottom,var(--blue),var(--teal))}
+section{margin-bottom:44px}
+
+/* ── GLASS CARD ── */
+.glass{background:rgba(255,255,255,0.035);border:1px solid var(--border);
+  border-radius:var(--r);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+
+/* ── 2-COL LAYOUT ── */
+.layout-2col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:720px){.layout-2col{grid-template-columns:1fr}}
+.layout-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:620px){.layout-3col{grid-template-columns:1fr 1fr}}
+
+/* ── BTN ── */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:8px;
+  border:none;font-family:'Syne',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;transition:all .2s;text-decoration:none}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--teal));color:var(--bg);box-shadow:0 4px 20px rgba(79,142,247,0.35)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(79,142,247,0.5)}
+.btn-secondary{background:var(--bg2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--blue);color:var(--blue);background:rgba(79,142,247,0.07)}
+.btn-secondary:disabled{opacity:.4;cursor:not-allowed}
+.btn-sim{background:rgba(0,212,170,0.1);color:var(--teal);border:1px solid rgba(0,212,170,0.3);padding:10px 20px}
+.btn-sim:hover{background:rgba(0,212,170,0.2);box-shadow:var(--glow-teal)}
+.btn-danger{background:rgba(255,107,107,0.1);color:var(--coral);border:1px solid rgba(255,107,107,0.3);padding:10px 20px}
+.btn-danger:hover{background:rgba(255,107,107,0.2)}
+.btn-gold{background:rgba(255,212,59,0.1);color:var(--gold);border:1px solid rgba(255,212,59,0.3);padding:10px 20px}
+.btn-gold:hover{background:rgba(255,212,59,0.2)}
+
+/* ── FORMULA BOX ── */
+.formula-box{padding:22px 28px;border-radius:var(--r);background:var(--bg2);border-left:3px solid var(--blue);
+  margin-bottom:16px;position:relative;overflow:hidden}
+.formula-box::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 0% 50%,rgba(79,142,247,0.06) 0%,transparent 70%);pointer-events:none}
+.formula-label{font-size:.68rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--blue);margin-bottom:10px}
+.formula-code{font-family:'JetBrains Mono',monospace;font-size:1rem;line-height:2;white-space:pre-wrap}
+.sym-v{color:var(--blue)}.sym-max{color:var(--teal)}.sym-sum{color:var(--purple)}
+.sym-p{color:var(--purple)}.sym-r{color:var(--gold)}.sym-g{color:var(--coral)}
+.sym-pi{color:var(--teal)}.sym-muted{color:var(--muted)}
+
+/* ── FLIP CARDS ── */
+.flip-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+@media(max-width:700px){.flip-grid{grid-template-columns:repeat(3,1fr)}}
+.flip-card{perspective:800px;height:170px;cursor:pointer}
+.flip-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1)}
+.flip-card:hover .flip-inner,.flip-card.flipped .flip-inner{transform:rotateY(180deg)}
+.flip-front,.flip-back{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:12px;border:1px solid var(--border)}
+.flip-front{background:var(--bg2)}.flip-back{transform:rotateY(180deg);background:var(--bg3);text-align:center}
+.flip-symbol{font-family:'JetBrains Mono',monospace;font-size:2.6rem;font-weight:600;line-height:1;margin-bottom:8px}
+.flip-name{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.flip-back-title{font-size:.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+.flip-back-desc{font-size:.72rem;color:var(--muted);line-height:1.5}
+.fc-s .flip-symbol{color:var(--blue)}.fc-s .flip-back-title{color:var(--blue)}
+.fc-s .flip-front{border-color:rgba(79,142,247,.2)}.fc-s .flip-back{border-color:rgba(79,142,247,.2);background:rgba(79,142,247,.07)}
+.fc-a .flip-symbol{color:var(--teal)}.fc-a .flip-back-title{color:var(--teal)}
+.fc-a .flip-front{border-color:rgba(0,212,170,.2)}.fc-a .flip-back{border-color:rgba(0,212,170,.2);background:rgba(0,212,170,.07)}
+.fc-t .flip-symbol{color:var(--purple)}.fc-t .flip-back-title{color:var(--purple)}
+.fc-t .flip-front{border-color:rgba(176,110,255,.2)}.fc-t .flip-back{border-color:rgba(176,110,255,.2);background:rgba(176,110,255,.07)}
+.fc-r .flip-symbol{color:var(--gold)}.fc-r .flip-back-title{color:var(--gold)}
+.fc-r .flip-front{border-color:rgba(255,212,59,.2)}.fc-r .flip-back{border-color:rgba(255,212,59,.2);background:rgba(255,212,59,.07)}
+.fc-g .flip-symbol{color:var(--coral)}.fc-g .flip-back-title{color:var(--coral)}
+.fc-g .flip-front{border-color:rgba(255,107,107,.2)}.fc-g .flip-back{border-color:rgba(255,107,107,.2);background:rgba(255,107,107,.07)}
+
+.reward-table{width:100%;border-collapse:collapse;font-size:.83rem}
+.reward-table th{padding:7px 10px;background:rgba(255,255,255,.04);color:var(--muted);font-size:.66rem;
+  letter-spacing:1.5px;text-transform:uppercase;font-weight:600;text-align:left;border-bottom:1px solid var(--border)}
+.reward-table td{padding:9px 10px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:.8rem}
+.reward-table tr:last-child td{border-bottom:none}
+.r-positive{color:#51cf66;font-weight:600}.r-negative{color:var(--coral);font-weight:600}.r-zero{color:var(--muted)}
+.policy-select{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;
+  padding:9px 12px;font-family:'Syne',sans-serif;font-size:.83rem;cursor:pointer;outline:none}
+.policy-select option{background:var(--bg3)}
+.gamma-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.gamma-row input[type=range]{flex:1;appearance:none;height:4px;border-radius:4px;background:var(--bg3);outline:none;cursor:pointer}
+.gamma-row input[type=range]::-webkit-slider-thumb{appearance:none;width:14px;height:14px;border-radius:50%;background:var(--blue);box-shadow:var(--glow-blue);cursor:pointer}
+.sim-log{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;
+  font-family:'JetBrains Mono',monospace;font-size:.71rem;line-height:1.8;max-height:180px;overflow-y:auto;color:var(--muted);min-height:70px}
+.sim-log::-webkit-scrollbar{width:3px}.sim-log::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.log-state{color:var(--teal)}.log-action{color:var(--blue)}.log-reward-pos{color:#51cf66}.log-reward-neg{color:var(--coral)}.log-total{color:var(--gold);font-weight:600}
+.total-box{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;
+  background:rgba(255,212,59,.06);border:1px solid rgba(255,212,59,.2);border-radius:8px;font-size:.83rem}
+.total-box .label{color:var(--muted)}.total-box .value{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:600;color:var(--gold)}
+
+/* ── MARKOV ── */
+.history-strip{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.history-state{padding:5px 11px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:.77rem;font-weight:500;
+  border:1px solid var(--border);background:var(--bg3);color:var(--muted)}
+.history-state.current{background:rgba(79,142,247,.15);border-color:var(--blue);color:var(--blue);box-shadow:var(--glow-blue)}
+.history-state.irrelevant{opacity:.35;text-decoration:line-through;text-decoration-color:var(--coral)}
+.arrow-right{color:var(--border);font-size:1rem}
+.markov-caption{font-size:.8rem;color:var(--muted);line-height:1.7;max-width:600px}
+.markov-caption strong{color:var(--teal)}
+
+/* ── TAKEAWAYS ── */
+.takeaways{padding:24px 28px}
+.takeaway-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.takeaway-list li{display:flex;gap:10px;align-items:flex-start;font-size:.87rem;line-height:1.6;color:#c5c8e8}
+.takeaway-list li::before{content:'→';color:var(--teal);font-weight:700;font-size:.95rem;flex-shrink:0;margin-top:2px}
+
+/* ── NAV FOOTER ── */
+.nav-footer{display:flex;justify-content:space-between;align-items:center;margin-top:16px;flex-wrap:wrap;gap:12px}
+
+/* ── AGENT-ENV SVG ── */
+.agent-env-wrap{display:flex;justify-content:center;align-items:center;padding:20px 0}
+.ae-svg{max-width:480px;width:100%}
+@keyframes dashFlow{to{stroke-dashoffset:-20}}
+.ae-path{stroke-dasharray:6 4;animation:dashFlow 1.2s linear infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.ae-pulse{animation:pulse 2s ease-in-out infinite}
+
+/* ══════════════════════════════════════════════════
+   CHAPTER 2 — GRID WORLD STYLES
+══════════════════════════════════════════════════ */
+.three-wrap{border-radius:var(--r);overflow:hidden;
+  background:radial-gradient(ellipse at 50% 50%,#0b0d1f,#06060e);
+  border:1px solid var(--border);position:relative}
+.three-wrap canvas{display:block;width:100%!important}
+.three-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;color:var(--muted);gap:8px;pointer-events:none;transition:opacity .3s}
+
+.legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted)}
+.legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+.trans-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.8rem}
+.trans-row:last-child{border-bottom:none}
+.trans-prob{font-family:'JetBrains Mono',monospace;color:var(--purple);font-weight:600;width:36px;text-align:right}
+.trans-bar{flex:1;height:6px;border-radius:3px;background:var(--bg3);overflow:hidden}
+.trans-bar-fill{height:100%;border-radius:3px;background:linear-gradient(to right,var(--blue),var(--purple))}
+.trans-state{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--teal)}
+
+.ep-log{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;line-height:1.8;max-height:150px;overflow-y:auto;color:var(--muted)}
+.ep-log::-webkit-scrollbar{width:3px}.ep-log::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+.stat-row{display:flex;gap:12px;margin-top:10px}
+.stat-chip{flex:1;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;text-align:center}
+.stat-chip .label{font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.stat-chip .val{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:600}
+
+/* ══════════════════════════════════════════════════
+   CHAPTER 3 — VALUE ITERATION STYLES
+══════════════════════════════════════════════════ */
+.vi-layout{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;align-items:start}
+@media(max-width:720px){.vi-layout{grid-template-columns:1fr}}
+
+.vi-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.vi-controls .btn{padding:8px 16px;font-size:.8rem}
+
+.gamma-ctrl{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted);
+  padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px}
+.gamma-ctrl input[type=range]{flex:1;appearance:none;height:3px;border-radius:3px;background:var(--bg3);outline:none;cursor:pointer}
+.gamma-ctrl input[type=range]::-webkit-slider-thumb{appearance:none;width:13px;height:13px;border-radius:50%;background:var(--coral);cursor:pointer}
+
+.vi-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.vi-stat{padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;text-align:center}
+.vi-stat .label{font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.vi-stat .val{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:600}
+
+/* Policy grid 2D arrows */
+.policy-grid-2d{display:grid;gap:5px;margin:0 auto}
+.pol-cell{aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;border:1px solid var(--border);background:var(--bg3);transition:all .4s;position:relative}
+.pol-cell.goal{background:rgba(0,212,170,.15);border-color:rgba(0,212,170,.4)}
+.pol-cell.hole{background:rgba(255,107,107,.15);border-color:rgba(255,107,107,.4)}
+.pol-cell.wall{background:rgba(20,20,40,.8)}
+.pol-cell.start{border-color:rgba(79,142,247,.4)}
+.pol-cell-val{position:absolute;bottom:2px;right:3px;font-family:'JetBrains Mono',monospace;
+  font-size:.55rem;color:var(--muted)}
+
+.conv-chart-wrap{padding:16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r)}
+.conv-chart-wrap canvas{max-height:180px}
+
+
+/* value legend bar */
+.val-legend{display:flex;align-items:center;gap:10px;font-size:.72rem;color:var(--muted);margin-bottom:8px}
+.val-gradient{flex:1;height:8px;border-radius:4px;
+  background:linear-gradient(to right,#cc2222,#333344,#00cc77)}
+
+/* ══════════════════════════════════════════════════
+   CHAPTER 4 — POLICY ITERATION STYLES
+══════════════════════════════════════════════════ */
+.pi-cycle{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;padding:24px}
+.pi-phase{padding:16px 20px;border-radius:10px;text-align:center;min-width:160px}
+.pi-phase.eval{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3)}
+.pi-phase.impr{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3)}
+.pi-phase.done{background:rgba(255,212,59,.08);border:1px solid rgba(255,212,59,.25)}
+.pi-phase-title{font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.pi-phase.eval .pi-phase-title{color:var(--blue)}
+.pi-phase.impr .pi-phase-title{color:var(--teal)}
+.pi-phase.done .pi-phase-title{color:var(--gold)}
+.pi-phase-body{font-size:.78rem;color:var(--muted);line-height:1.5}
+.pi-arrow{font-size:1.4rem;color:var(--border);padding:0 8px;align-self:center}
+
+.pi-iter-log{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;
+  font-family:'JetBrains Mono',monospace;font-size:.71rem;line-height:1.8;max-height:160px;overflow-y:auto;color:var(--muted)}
+.pi-iter-log::-webkit-scrollbar{width:3px}.pi-iter-log::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.pi-changed{color:var(--blue)}.pi-stable{color:var(--green);font-weight:700}
+
+.compare-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.compare-table th{padding:9px 12px;background:rgba(255,255,255,.04);color:var(--muted);font-size:.67rem;
+  letter-spacing:1.5px;text-transform:uppercase;font-weight:600;text-align:left;border-bottom:1px solid var(--border)}
+.compare-table td{padding:9px 12px;border-bottom:1px solid var(--border);line-height:1.5}
+.compare-table tr:last-child td{border-bottom:none}
+.compare-table .highlight{color:var(--teal);font-weight:600}
+
+/* ══════════════════════════════════════════════════
+   SHARED ALGO VIZ — used by Ch3 & Ch4
+══════════════════════════════════════════════════ */
+
+/* γ slider row */
+.algo-slider-row{display:flex;align-items:center;gap:14px;padding:12px 18px;margin-bottom:14px}
+.algo-slider-label{font-size:.75rem;font-weight:700;letter-spacing:1px;white-space:nowrap;color:var(--muted)}
+.algo-slider-row input[type=range]{flex:1;appearance:none;height:4px;border-radius:4px;background:rgba(255,255,255,.08);outline:none;cursor:pointer}
+.algo-slider-row input[type=range]::-webkit-slider-thumb{appearance:none;width:15px;height:15px;border-radius:50%;background:var(--blue);box-shadow:var(--glow-blue);cursor:pointer}
+
+/* ── Algorithm Flow 3D Diagram ── */
+.algo-flow-card{background:linear-gradient(145deg,rgba(10,11,25,.95),rgba(18,20,42,.9));border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:22px 26px;margin-bottom:22px;perspective:900px;cursor:default}
+.algo-flow-inner{transform-style:preserve-3d;transform:rotateX(5deg) rotateY(-1.5deg);transition:transform .55s cubic-bezier(.23,1,.32,1)}
+.algo-flow-card:hover .algo-flow-inner{transform:rotateX(0deg) rotateY(0deg)}
+.afc-title{font-size:.66rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:18px}
+.afc-rows{display:flex;flex-direction:column;gap:22px}
+.afc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;transition:opacity .3s}
+.afc-row.dimmed{opacity:.28}
+.afc-tag{font-size:.66rem;font-weight:800;letter-spacing:1px;padding:3px 9px;border-radius:5px;flex-shrink:0;transform:translateZ(4px)}
+.afc-tag-vi{background:rgba(79,142,247,.15);color:var(--blue);border:1px solid rgba(79,142,247,.35)}
+.afc-tag-pi{background:rgba(0,212,170,.1);color:var(--teal);border:1px solid rgba(0,212,170,.3)}
+.afc-segment{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.afc-loop-group{display:flex;flex-direction:column;align-items:stretch}
+.afc-arc{font-size:.59rem;font-weight:600;padding:3px 10px;border-radius:7px 7px 0 0;border:1px solid;border-bottom:none;text-align:center;white-space:nowrap}
+.afc-arc-vi{color:var(--blue);border-color:rgba(79,142,247,.3);background:rgba(79,142,247,.06)}
+.afc-arc-pi{color:var(--teal);border-color:rgba(0,212,170,.25);background:rgba(0,212,170,.05)}
+.afc-nodes{display:flex;align-items:center;gap:3px;border:1px solid;border-top:none;border-radius:0 0 7px 7px;padding:4px 8px}
+.afc-nodes-vi{border-color:rgba(79,142,247,.25)}
+.afc-nodes-pi{border-color:rgba(0,212,170,.2);justify-content:space-between;padding:6px 12px;gap:8px}
+.afc-node{padding:5px 11px;border-radius:7px;font-size:.82rem;font-weight:700;font-family:'JetBrains Mono',monospace;border:1.5px solid;white-space:nowrap;transition:box-shadow .3s}
+.fn-vi{background:rgba(79,142,247,.1);border-color:rgba(79,142,247,.4);color:#a8c4ff;transform:translateZ(6px)}
+.fn-vi:last-child{transform:translateZ(12px)}
+.fn-pi{background:rgba(0,212,170,.08);border-color:rgba(0,212,170,.3);color:#7fffd4;transform:translateZ(6px)}
+.fn-pi:last-child{transform:translateZ(12px)}
+.fn-vstar{background:rgba(255,212,59,.12);border-color:rgba(255,212,59,.5);color:var(--gold);box-shadow:0 0 12px rgba(255,212,59,.25);transform:translateZ(16px)}
+.fn-pistar{background:rgba(176,110,255,.12);border-color:rgba(176,110,255,.45);color:#d4b0ff;box-shadow:0 0 12px rgba(176,110,255,.28);transform:translateZ(20px)}
+.afc-arrow{color:rgba(255,255,255,.28);font-size:.85rem;flex-shrink:0}
+.afc-arrow-extract{color:var(--gold);font-size:1rem;flex-shrink:0;transform:translateZ(8px)}
+.afc-cycle{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;border:1.5px solid rgba(0,212,170,.45);color:var(--teal);background:rgba(0,212,170,.08);box-shadow:0 0 8px rgba(0,212,170,.15)}
+.afc-desc{font-size:.68rem;color:var(--muted);margin-left:4px;line-height:1.5}
+@keyframes pulse-glow-vi{0%,100%{box-shadow:0 0 12px rgba(255,212,59,.25)}50%{box-shadow:0 0 20px rgba(255,212,59,.5),0 0 30px rgba(79,142,247,.2)}}
+@keyframes pulse-glow-pi{0%,100%{box-shadow:0 0 12px rgba(176,110,255,.28)}50%{box-shadow:0 0 22px rgba(176,110,255,.55),0 0 32px rgba(0,212,170,.2)}}
+.fn-vstar{animation:pulse-glow-vi 2.8s ease-in-out infinite}
+.fn-pistar{animation:pulse-glow-pi 2.8s ease-in-out infinite}
+.vi-metric-select{flex:1;background:rgba(20,22,45,.85);color:#e0e4ff;border:1px solid rgba(79,142,247,.3);border-radius:8px;padding:6px 10px;font-size:.82rem;font-family:inherit;outline:none;cursor:pointer;transition:border-color .2s}
+.vi-metric-select:hover,.vi-metric-select:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(79,142,247,.18)}
+.algo-slider-val{font-family:'JetBrains Mono',monospace;font-size:.88rem;color:var(--text);min-width:56px;text-align:right}
+.algo-slider-hint{font-size:.7rem;color:var(--muted);white-space:nowrap;display:none}
+@media(min-width:760px){.algo-slider-hint{display:block}}
+
+/* ── Sandbox tab ── */
+.sb-config-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+@media(max-width:700px){.sb-config-row{grid-template-columns:1fr}}
+.sb-left,.sb-right{padding:18px 20px;border-radius:14px}
+.sb-panel-title{font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.sb-label{font-size:.72rem;font-weight:700;letter-spacing:.8px;color:var(--muted);white-space:nowrap;min-width:76px}
+.sb-label-sm{min-width:68px}
+.sb-size-row,.sb-setting-row,.sb-mode-row,.sb-custom-row{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.sb-num{width:46px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:5px 7px;color:var(--text);font-size:.85rem;text-align:center;outline:none}
+.sb-num:focus{border-color:var(--blue)}
+.sb-reward-input{width:64px;background:rgba(255,255,255,.06);border:1px solid var(--gold);border-radius:6px;padding:4px 8px;color:var(--gold);font-size:.8rem;text-align:center;outline:none;font-family:'JetBrains Mono',monospace}
+.sb-slider{flex:1;appearance:none;height:4px;border-radius:4px;background:rgba(255,255,255,.08);outline:none;cursor:pointer}
+.sb-slider::-webkit-slider-thumb{appearance:none;width:14px;height:14px;border-radius:50%;background:var(--blue);cursor:pointer}
+.sb-val-display{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--text);min-width:42px;text-align:right}
+.sb-mode-btns{display:flex;flex-wrap:wrap;gap:5px}
+.sb-mode-btn{padding:4px 9px;border-radius:5px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:var(--muted);font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s}
+.sb-mode-btn:hover{border-color:rgba(255,255,255,.25);color:var(--text)}
+.sb-mode-btn.active{border-color:var(--blue);color:var(--text);background:rgba(79,142,247,.12)}
+.sb-mode-btn.active.mode-goal{border-color:var(--teal);color:var(--teal);background:rgba(0,212,170,.1)}
+.sb-mode-btn.active.mode-hole{border-color:var(--coral);color:var(--coral);background:rgba(255,107,107,.1)}
+.sb-mode-btn.active.mode-wall{border-color:#6b6b9a;color:#aaaacc;background:rgba(100,100,160,.1)}
+.sb-mode-btn.active.mode-reward{border-color:var(--gold);color:var(--gold);background:rgba(255,212,59,.1)}
+.sb-algo-btns{display:flex;gap:6px}
+.sb-algo-btn{padding:6px 14px;border-radius:7px;border:1.5px solid rgba(255,255,255,.12);background:transparent;color:var(--muted);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .18s}
+.sb-algo-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(255,212,59,.08);box-shadow:0 0 8px rgba(255,212,59,.15)}
+.sb-prob-sum{font-size:.74rem;padding:5px 10px;border-radius:6px;margin-top:4px;font-family:'JetBrains Mono',monospace}
+.sb-prob-sum.ok{background:rgba(0,212,170,.08);color:var(--teal)}
+.sb-prob-sum.warn{background:rgba(255,212,59,.08);color:var(--gold)}
+.sb-grid-wrap{display:flex;justify-content:center;padding:10px 0;overflow:auto}
+.sb-grid{display:grid;gap:3px}
+.sb-cell{border-radius:7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .1s,box-shadow .12s;position:relative;border:2px solid transparent;user-select:none;font-weight:700}
+.sb-cell:hover{transform:scale(1.06);z-index:2}
+.sb-cell.type-normal{background:rgba(28,30,55,.8);border-color:rgba(255,255,255,.07)}
+.sb-cell.type-wall{background:#17172e;border-color:#2d2d4e}
+.sb-cell.type-start{background:rgba(79,142,247,.2);border-color:var(--blue);box-shadow:0 0 10px rgba(79,142,247,.25)}
+.sb-cell.type-goal{background:rgba(0,212,170,.18);border-color:var(--teal);box-shadow:0 0 10px rgba(0,212,170,.25)}
+.sb-cell.type-hole{background:rgba(255,107,107,.18);border-color:var(--coral);box-shadow:0 0 10px rgba(255,107,107,.25)}
+.sb-cell.type-reward{background:rgba(255,212,59,.12);border-color:var(--gold);box-shadow:0 0 8px rgba(255,212,59,.2)}
+.sb-run-row{display:flex;align-items:center;gap:18px;margin:0 0 20px}
+.sb-run-btn{padding:13px 32px;font-size:1rem;letter-spacing:.5px}
+.sb-status{font-size:.82rem;font-family:'JetBrains Mono',monospace;color:var(--muted)}
+.sb-eval-stats{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.sb-eval-stat{flex:1;min-width:80px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:9px;padding:11px;text-align:center}
+.sb-eval-stat .lbl{font-size:.63rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.sb-eval-stat .val{font-size:1.25rem;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace;margin-top:5px}
+.btn-xs{padding:4px 9px;font-size:.7rem}
+.btn-sm{padding:6px 12px;font-size:.76rem}
+/* Sandbox episode animation on 2D policy grid */
+.pol-cell-agent{background:rgba(255,212,59,.35)!important;box-shadow:0 0 14px rgba(255,212,59,.6)!important;border-color:var(--gold)!important;transition:background .15s,box-shadow .15s}
+.pol-cell-visited{background:rgba(79,142,247,.12)!important;opacity:.7}
+.pol-cell-win{background:rgba(0,212,170,.4)!important;box-shadow:0 0 18px rgba(0,212,170,.7)!important}
+.pol-cell-lose{background:rgba(255,107,107,.4)!important;box-shadow:0 0 18px rgba(255,107,107,.7)!important}
+
+/* control button row */
+.algo-ctrl-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.algo-ctrl-row .btn{padding:10px 18px;font-size:.82rem;flex:0 0 auto}
+
+/* stats row */
+.algo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+@media(max-width:580px){.algo-stats{grid-template-columns:repeat(2,1fr)}}
+.algo-stat{padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;text-align:center}
+.algo-stat-label{font-size:.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.algo-stat-val{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:600;color:var(--text)}
+
+/* explanation box */
+.algo-explain{border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:.82rem;line-height:1.75;color:#c5c8e8}
+.algo-explain-label{font-size:.62rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:8px}
+.algo-explain-blue{background:rgba(79,142,247,.07);border:1px solid rgba(79,142,247,.22)}
+.algo-explain-blue .algo-explain-label{color:var(--blue)}
+.algo-explain-teal{background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.22)}
+.algo-explain-teal .algo-explain-label{color:var(--teal)}
+
+/* main 2-col layout */
+.algo-main{display:grid;grid-template-columns:1.25fr 1fr;gap:20px;align-items:start}
+@media(max-width:720px){.algo-main{grid-template-columns:1fr}}
+
+/* left: scene column */
+.algo-scene-col{display:flex;flex-direction:column;gap:10px}
+.algo-scene-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.algo-scene-tag{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--text);background:var(--bg3);border:1px solid var(--border);padding:4px 10px;border-radius:20px}
+.algo-scene-hint{font-size:.68rem;color:var(--muted)}
+.algo-canvas-wrap{border-radius:var(--r);overflow:hidden;
+  background:radial-gradient(ellipse at 50% 50%,#0b0d1f,#06060e);
+  border:1px solid var(--border);position:relative}
+.algo-canvas-wrap canvas{display:block;width:100%!important}
+.algo-legend-row{display:flex;align-items:center;gap:10px;font-size:.72rem;color:var(--muted);padding:0 2px}
+.algo-val-bar{flex:1;height:6px;border-radius:3px;background:linear-gradient(to right,#cc2222,#333344,#00cc77)}
+
+/* right: panel column */
+.algo-right-col{display:flex;flex-direction:column;gap:14px}
+.algo-panel-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.algo-panel-title{font-size:.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);margin-bottom:4px}
+.algo-panel-sub{font-size:.65rem;color:var(--muted);margin-bottom:10px}
+.algo-panel-card canvas{max-height:160px}
+.algo-panel-card .policy-grid-2d{margin:0}
+
+/* ── Stats modal ── */
+.sb-stats-modal{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
+.sb-stats-panel{background:var(--bg2);border:1px solid var(--border);border-radius:18px;width:min(97vw,940px);max-height:90vh;overflow-y:auto;padding:28px 30px;position:relative;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.sb-stats-panel::-webkit-scrollbar{width:5px}.sb-stats-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.sb-stats-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px;transition:color .2s}.sb-stats-close:hover{color:var(--text)}
+.sb-stats-heading{font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:3px}
+.sb-stats-sub{font-size:.78rem;color:var(--muted);margin-bottom:20px}
+.sb-stats-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px;margin-bottom:24px}
+.sb-stats-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:11px 14px}
+.sb-stats-card .lbl{font-size:.6rem;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.sb-stats-card .val{font-size:1.1rem;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace}
+.sb-stats-chart-wrap{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.05);border-radius:12px;padding:16px 18px;margin-bottom:18px}
+.sb-stats-chart-lbl{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:12px;letter-spacing:.2px}
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+<div class="progress-bar" id="progress-bar" style="width:25%"></div>
+
+<div class="page-wrap">
+  <header>
+    <h1>Markov Decision Processes</h1>
+    <p>An interactive MDP lab — authored by Zvika Berger</p>
+  </header>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab(0)">01 Introduction</button>
+    <button class="tab" onclick="switchTab(1)">02 Grid World</button>
+    <button class="tab" onclick="switchTab(2)">03 Finding π*</button>
+    <button class="tab" onclick="switchTab(3)">04 Value Iteration</button>
+    <button class="tab" onclick="switchTab(4)">05 Policy Iteration</button>
+    <button class="tab" onclick="switchTab(5)">06 Sandbox</button>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 1 — INTRODUCTION
+  ══════════════════════════════════════════════ -->
+  <div class="panel active" id="panel-0">
+
+    <section>
+      <div class="section-title">What is an MDP?</div>
+
+      <div class="glass" style="padding:20px 24px;margin-bottom:18px;line-height:1.85;font-size:.87rem;color:#c5c8e8">
+        <p style="margin:0 0 10px">
+          A <strong style="color:var(--blue)">Markov Decision Process (MDP)</strong> is a formal framework for modelling non-deterministic sequential decision problems.
+          It is widely used across many fields, including <span style="color:var(--teal)">robotics</span>, <span style="color:var(--teal)">automatic control</span>, <span style="color:var(--teal)">economics</span>, and <span style="color:var(--teal)">manufacturing</span>.
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:.82rem;color:var(--muted);margin-top:4px">
+          <div style="display:flex;align-items:flex-start;gap:8px"><span style="color:var(--gold);flex-shrink:0">◆</span><span>The environment is <strong style="color:#c5c8e8">fully observable</strong> — the agent sees the complete state at every moment</span></div>
+          <div style="display:flex;align-items:flex-start;gap:8px"><span style="color:var(--gold);flex-shrink:0">◆</span><span>The environment is <strong style="color:#c5c8e8">stochastic</strong> — the outcome of an action is not certain</span></div>
+          <div style="display:flex;align-items:flex-start;gap:8px"><span style="color:var(--gold);flex-shrink:0">◆</span><span><strong style="color:#c5c8e8">Time-invariant</strong> — the dynamics do not change over time (stationary)</span></div>
+          <div style="display:flex;align-items:flex-start;gap:8px"><span style="color:var(--gold);flex-shrink:0">◆</span><span>The problem is <strong style="color:#c5c8e8">ongoing</strong> — it can run indefinitely until an external termination signal is received</span></div>
+          <div style="display:flex;align-items:flex-start;gap:8px;grid-column:1/-1"><span style="color:var(--gold);flex-shrink:0">◆</span><span>The agent receives a <strong style="color:#c5c8e8">reward</strong> on every action it takes — the goal is to maximise the total discounted reward over time</span></div>
+          <div style="display:flex;align-items:flex-start;gap:8px;grid-column:1/-1"><span style="color:var(--gold);flex-shrink:0">◆</span><span>The agent <strong style="color:#c5c8e8">maximises expected return</strong> — rather than simply reaching a goal state, it strives to accumulate as much reward as possible along the entire trajectory</span></div>
+        </div>
+      </div>
+
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">The 5 Components</div>
+      <div class="flip-grid" style="margin-bottom:20px">
+        <div class="flip-card fc-s" onclick="this.classList.toggle('flipped')">
+          <div class="flip-inner">
+            <div class="flip-front"><div class="flip-symbol">S</div><div class="flip-name">States</div></div>
+            <div class="flip-back"><div class="flip-back-title">States</div><div class="flip-back-desc">All situations the agent can be in.<br><br>Example: every (row, col) in a grid.</div></div>
+          </div>
+        </div>
+        <div class="flip-card fc-a" onclick="this.classList.toggle('flipped')">
+          <div class="flip-inner">
+            <div class="flip-front"><div class="flip-symbol">A</div><div class="flip-name">Actions</div></div>
+            <div class="flip-back"><div class="flip-back-title">Actions</div><div class="flip-back-desc">Decisions the agent can make in a state.<br><br>Example: {UP, DOWN, LEFT, RIGHT}.</div></div>
+          </div>
+        </div>
+        <div class="flip-card fc-t" onclick="this.classList.toggle('flipped')">
+          <div class="flip-inner">
+            <div class="flip-front"><div class="flip-symbol">T</div><div class="flip-name">Transitions</div></div>
+            <div class="flip-back"><div class="flip-back-title">Transition Model</div><div class="flip-back-desc">P(s′|s,a) — probability of landing in s′ after action a.<br><br>Captures stochasticity: wind, slipping, noise.</div></div>
+          </div>
+        </div>
+        <div class="flip-card fc-r" onclick="this.classList.toggle('flipped')">
+          <div class="flip-inner">
+            <div class="flip-front"><div class="flip-symbol">R</div><div class="flip-name">Rewards</div></div>
+            <div class="flip-back"><div class="flip-back-title">Reward Function</div><div class="flip-back-desc">R(s,a,s′) — immediate signal after a transition.<br><br>Encodes the goal: what the agent should maximise.</div></div>
+          </div>
+        </div>
+        <div class="flip-card fc-g" onclick="this.classList.toggle('flipped')">
+          <div class="flip-inner">
+            <div class="flip-front"><div class="flip-symbol">γ</div><div class="flip-name">Gamma</div></div>
+            <div class="flip-back"><div class="flip-back-title">Discount Factor</div><div class="flip-back-desc">0 ≤ γ &lt; 1 — how much future rewards are valued.<br><br>γ=0: only immediate. γ≈1: far-sighted.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:stretch;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px;background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.22);border-radius:10px;padding:14px 18px">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--teal);margin-bottom:8px">What we know</div>
+          <div style="font-size:.84rem;line-height:1.9;color:#c5c8e8">
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--blue)">P(s′|s,a)</span> — transition probabilities<br>
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--teal)">R(s,a,s′)</span> — reward function
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;font-size:1.4rem;color:rgba(255,255,255,.2);flex-shrink:0">⟹</div>
+        <div style="flex:1;min-width:200px;background:rgba(176,110,255,.07);border:1px solid rgba(176,110,255,.28);border-radius:10px;padding:14px 18px">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#b06eff;margin-bottom:8px">What we want</div>
+          <div style="font-size:.84rem;line-height:1.9;color:#c5c8e8">
+            <span style="font-family:'JetBrains Mono',monospace;color:#d4b0ff">π*(s)</span> — the <strong style="color:#d4b0ff">optimal policy</strong><br>
+            <span style="font-size:.78rem;color:var(--muted)">the action at each state that maximises expected discounted return</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="agent-env-wrap">
+        <svg class="ae-svg" viewBox="0 0 480 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Agent box -->
+          <rect x="20" y="70" width="140" height="60" rx="10" fill="rgba(79,142,247,0.12)" stroke="rgba(79,142,247,0.5)" stroke-width="1.5"/>
+          <text x="90" y="97" text-anchor="middle" font-family="Syne,sans-serif" font-size="13" font-weight="700" fill="#4f8ef7">AGENT</text>
+          <text x="90" y="115" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#7b7fa0">π(s) → a</text>
+          <!-- Environment box -->
+          <rect x="320" y="70" width="140" height="60" rx="10" fill="rgba(0,212,170,0.10)" stroke="rgba(0,212,170,0.45)" stroke-width="1.5"/>
+          <text x="390" y="97" text-anchor="middle" font-family="Syne,sans-serif" font-size="13" font-weight="700" fill="#00d4aa">ENVIRONMENT</text>
+          <text x="390" y="115" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#7b7fa0">T(s,a,s') R(s,a)</text>
+          <!-- Action arrow top -->
+          <path d="M160 88 Q240 30 320 88" stroke="#4f8ef7" stroke-width="1.8" fill="none" class="ae-path"/>
+          <polygon points="320,88 308,82 312,93" fill="#4f8ef7"/>
+          <text x="240" y="44" text-anchor="middle" font-family="Syne,sans-serif" font-size="11" font-weight="700" fill="#4f8ef7">action a</text>
+          <!-- State+reward arrow bottom -->
+          <path d="M320 112 Q240 170 160 112" stroke="#00d4aa" stroke-width="1.8" fill="none" class="ae-path"/>
+          <polygon points="160,112 172,106 168,117" fill="#00d4aa"/>
+          <text x="240" y="182" text-anchor="middle" font-family="Syne,sans-serif" font-size="11" font-weight="700" fill="#00d4aa">state s′, reward r</text>
+        </svg>
+      </div>
+      <p style="text-align:center;color:var(--muted);font-size:.85rem;margin-top:8px">
+        An MDP formalises sequential decision-making: an <strong style="color:var(--blue)">Agent</strong> observes a state, takes an action, and the <strong style="color:var(--teal)">Environment</strong> returns a new state and a reward.
+      </p>
+    </section>
+
+    <section>
+      <div class="section-title">The Markov Property</div>
+      <div class="glass" style="padding:22px 26px">
+        <div class="history-strip" id="markov-strip">
+          <span class="history-state">s₀</span><span class="arrow-right">→</span>
+          <span class="history-state">s₁</span><span class="arrow-right">→</span>
+          <span class="history-state">s₂</span><span class="arrow-right">→</span>
+          <span class="history-state">s₃</span><span class="arrow-right">→</span>
+          <span class="history-state current">s₄</span>
+        </div>
+        <p class="markov-caption">
+          <strong>The future depends only on the present state — not the past.</strong><br>
+          P(s₅ | s₄, s₃, s₂, s₁, s₀) = P(s₅ | s₄)<br><br>
+          Once you know s₄, the entire history s₀…s₃ is irrelevant. This simplification makes MDPs tractable.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Key Takeaways</div>
+      <div class="glass takeaways">
+        <ul class="takeaway-list">
+          <li>An MDP is defined by five components: S, A, T, R, and γ</li>
+          <li>The environment is fully observable, stochastic, and time-invariant</li>
+          <li>The agent selects actions; the environment transitions and emits a reward</li>
+          <li>The Markov property means only the current state matters — not history</li>
+          <li>The goal is to find the optimal policy π* that maximises expected discounted return</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="nav-footer">
+      <div></div>
+      <button class="btn btn-primary" onclick="switchTab(1)">Next: Grid World →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 2 — GRID WORLD
+  ══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-1">
+
+    <!-- 3D Visualization -->
+    <section>
+      <div class="section-title">The 4×4 Grid World Environment</div>
+      <div class="layout-2col">
+        <div>
+          <div class="three-wrap" style="height:340px">
+            <canvas id="ch2-canvas"></canvas>
+            <div class="three-loading" id="ch2-loading">⟳ Loading 3D scene…</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button class="btn btn-sim" onclick="runRandomPolicy()">▶ Run Random Policy</button>
+            <button class="btn btn-danger" onclick="resetEpisode()">↺ Reset</button>
+          </div>
+          <div class="stat-row">
+            <div class="stat-chip"><div class="label">Steps</div><div class="val" id="ep-steps">—</div></div>
+            <div class="stat-chip"><div class="label">Reward</div><div class="val" id="ep-reward">—</div></div>
+            <div class="stat-chip"><div class="label">Outcome</div><div class="val" id="ep-outcome">—</div></div>
+          </div>
+          <div class="ep-log" id="ep-log" style="margin-top:10px">Click "Run Random Policy" to start…</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="glass" style="padding:20px">
+            <div style="font-size:.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Grid Layout</div>
+            <div class="legend-grid">
+              <div class="legend-item"><div class="legend-dot" style="background:#1e4a9c"></div>Start (0,0)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#0d6e50"></div>Goal (3,3) +10</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#7c1515"></div>Hole (2,3) −10</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#0a0a15"></div>Wall (1,1)</div>
+            </div>
+            <p style="font-size:.75rem;color:var(--muted);margin-top:12px;line-height:1.6">Each step costs <span style="color:var(--coral);font-family:'JetBrains Mono',monospace">−1</span>. Terminal states: Goal and Hole.</p>
+          </div>
+          <div class="glass" style="padding:20px">
+            <div style="font-size:.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Stochastic Transitions — from START, action RIGHT</div>
+            <div class="trans-row">
+              <span class="trans-prob">80%</span>
+              <div class="trans-bar"><div class="trans-bar-fill" style="width:80%"></div></div>
+              <span class="trans-state">(0,1) intended</span>
+            </div>
+            <div class="trans-row">
+              <span class="trans-prob">10%</span>
+              <div class="trans-bar"><div class="trans-bar-fill" style="width:10%"></div></div>
+              <span class="trans-state">(0,0) slip UP</span>
+            </div>
+            <div class="trans-row">
+              <span class="trans-prob">10%</span>
+              <div class="trans-bar"><div class="trans-bar-fill" style="width:10%"></div></div>
+              <span class="trans-state">(1,0) slip DOWN</span>
+            </div>
+          </div>
+          <div class="formula-box">
+            <div class="formula-label">Transition Model</div>
+            <div class="formula-code" style="font-size:.85rem"><span class="sym-p">P</span>(s′|s,a):
+  80%  intended direction
+  10%  slip left of a
+  10%  slip right of a</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Key Takeaways</div>
+      <div class="glass takeaways">
+        <ul class="takeaway-list">
+          <li>The Grid World is a finite MDP with 16 states and 4 actions per state</li>
+          <li>Stochastic transitions (80/10/10) make the agent's path uncertain</li>
+          <li>Terminal states (Goal, Hole) end the episode immediately</li>
+          <li>A random policy will rarely reach the Goal — it needs to learn or plan</li>
+          <li>The environment is fully observable: agent always knows its (row, col)</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="nav-footer">
+      <button class="btn btn-secondary" onclick="switchTab(0)">← Introduction</button>
+      <button class="btn btn-primary" onclick="switchTab(2)">Next: Key Equations →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 3 — VALUE ITERATION
+  ══════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════
+       PANEL 3 — KEY EQUATIONS & VI ALGORITHM
+  ══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-2">
+
+    <section>
+      <div class="section-title">Key Equations</div>
+
+      <!-- Policy Evaluation -->
+      <div class="formula-box" style="margin-bottom:14px">
+        <div class="formula-label">Policy Evaluation</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Given a fixed policy π, compute the value of every state:</div>
+        <div class="formula-code">
+          <span class="sym-v">V<sub>π</sub></span>(s) = <span class="sym-r">R</span>(s) + <span class="sym-g">γ</span> <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′ | s, <span class="sym-pi">π</span>(s)) · <span class="sym-v">V<sub>π</sub></span>(s′)
+        </div>
+      </div>
+
+      <!-- Optimal Policy -->
+      <div class="formula-box" style="border-left-color:var(--teal);margin-bottom:14px">
+        <div class="formula-label" style="color:var(--teal)">Optimal Policy</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">π* is the policy that produces the highest utility — choose the action that maximises expected future utility:</div>
+        <div class="formula-code">
+          <span class="sym-pi">π*</span>(s) = <span class="sym-max">max</span><sub>a</sub> <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s, a, s′) <span class="sym-v">V</span>(s′)
+        </div>
+        <div style="font-size:.74rem;color:var(--muted);margin-top:8px"><span style="font-family:'JetBrains Mono',monospace;color:var(--teal)">V(s′)</span> = Value of state s′</div>
+      </div>
+
+      <!-- Bellman Equation -->
+      <div class="formula-box" style="border-left-color:var(--coral)">
+        <div class="formula-label" style="color:var(--coral)">Bellman Equation</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Expresses the value of a state recursively. Two equivalent forms:</div>
+        <div class="formula-code" style="margin-bottom:10px">
+          <span class="sym-v">V*</span>(s) = <span class="sym-r">R</span>(s) + <span class="sym-g">γ</span> · <span class="sym-max">max</span><sub>a</sub> <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′ | s, a) · <span class="sym-v">V*</span>(s′)
+        </div>
+        <div style="font-size:.74rem;color:var(--muted);margin-bottom:10px">When reward depends on the transition R(s, a, s′):</div>
+        <div class="formula-code">
+          <span class="sym-v">V*</span>(s) = <span class="sym-max">max</span><sub>a</sub> <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s, a, s′) [ <span class="sym-r">R</span>(s, a, s′) + <span class="sym-g">γ</span> <span class="sym-v">V*</span>(s′) ]
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Value Iteration</div>
+      <p style="color:var(--muted);font-size:.87rem;line-height:1.8;margin-bottom:18px">
+        Value Iteration (VI) finds the optimal value function <span style="color:var(--blue);font-family:'JetBrains Mono',monospace">V*</span> by repeatedly applying the <strong style="color:var(--text)">Bellman optimality update</strong> to every state until convergence. Once <span style="color:var(--blue);font-family:'JetBrains Mono',monospace">V*</span> is known, the optimal policy <span style="color:var(--teal);font-family:'JetBrains Mono',monospace">π*</span> is extracted in a single greedy pass — no model-free interaction needed.
+      </p>
+      <div class="formula-box" style="margin-bottom:12px">
+        <div class="formula-label">Bellman Optimality Update (repeated until max|ΔV| &lt; θ)</div>
+        <div class="formula-code">
+          <span class="sym-v">V</span>(s) ← <span class="sym-max">max</span><sub>a</sub> <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′|s,a) [ <span class="sym-r">R</span>(s,a,s′) + <span class="sym-g">γ</span> · <span class="sym-v">V</span>(s′) ]
+        </div>
+      </div>
+      <div class="formula-box" style="border-left-color:var(--teal);margin-bottom:24px">
+        <div class="formula-label" style="color:var(--teal)">Policy Extraction (once, after convergence)</div>
+        <div class="formula-code">
+          <span class="sym-pi">π*</span>(s) = <span class="sym-max">argmax</span><sub>a</sub> <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′|s,a) [ <span class="sym-r">R</span>(s,a,s′) + <span class="sym-g">γ</span> · <span class="sym-v">V*</span>(s′) ]
+        </div>
+      </div>
+      <!-- Algorithm Flow — VI highlighted -->
+      <div class="algo-flow-card" style="padding:34px 38px;margin-bottom:8px;perspective:1200px">
+        <div class="algo-flow-inner">
+          <div class="afc-title" style="color:var(--blue);font-size:.82rem;letter-spacing:3px;margin-bottom:26px">Algorithm Flow</div>
+          <div class="afc-rows">
+            <div class="afc-row" style="margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid rgba(79,142,247,.18)">
+              <div class="afc-tag afc-tag-vi" style="font-size:.82rem;padding:5px 15px;min-width:42px">VI</div>
+              <div class="afc-segment">
+                <div class="afc-loop-group">
+                  <div class="afc-arc afc-arc-vi" style="font-size:.76rem;padding:5px 16px;letter-spacing:.3px">↻ &nbsp;Bellman sweeps until max|ΔV| &lt; θ</div>
+                  <div class="afc-nodes afc-nodes-vi" style="gap:10px">
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">V₀</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">V₁</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">···</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vstar" style="font-size:1rem;padding:8px 16px">V*</div>
+                  </div>
+                </div>
+                <div class="afc-arrow-extract" style="font-size:1.4rem;margin:0 14px">⟹</div>
+                <div class="afc-node fn-pistar" style="font-size:1rem;padding:8px 16px">π*</div>
+              </div>
+              <div class="afc-desc" style="font-size:.8rem;margin-top:10px">update value function · extract policy <em>once</em> at end</div>
+            </div>
+            <div class="afc-row" style="opacity:.45">
+              <div class="afc-tag afc-tag-pi" style="font-size:.82rem;padding:5px 15px;min-width:42px">PI</div>
+              <div class="afc-segment">
+                <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">π₀</div>
+                <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                <div class="afc-loop-group">
+                  <div class="afc-arc afc-arc-pi" style="font-size:.76rem;padding:5px 16px">↻ &nbsp;Eval → Improve until policy stable</div>
+                  <div class="afc-nodes afc-nodes-pi" style="gap:10px">
+                    <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">V<sup>π</sup></div>
+                    <div class="afc-cycle" style="font-size:1.2rem">⇄</div>
+                    <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">π′</div>
+                  </div>
+                </div>
+                <div class="afc-arrow-extract" style="font-size:1.4rem;margin:0 14px">⟹</div>
+                <div class="afc-node fn-pistar" style="font-size:1rem;padding:8px 16px">π*</div>
+              </div>
+              <div class="afc-desc" style="font-size:.8rem;margin-top:10px">alternate full evaluation &amp; greedy improvement</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Policy Iteration</div>
+      <p style="color:var(--muted);font-size:.87rem;line-height:1.8;margin-bottom:18px">
+        Policy Iteration (PI) alternates between two steps: <strong style="color:var(--text)">Policy Evaluation</strong> — computing the exact value of the current policy — and <strong style="color:var(--text)">Policy Improvement</strong> — making the policy greedy with respect to those values. The process terminates when the policy no longer changes, guaranteeing the optimal policy <span style="color:var(--teal);font-family:'JetBrains Mono',monospace">π*</span>.
+      </p>
+      <div class="formula-box" style="margin-bottom:12px">
+        <div class="formula-label">Step 1 — Policy Evaluation (solve for V<sup>π</sup>, fixed policy)</div>
+        <div class="formula-code">
+          <span class="sym-v">V<sup>π</sup></span>(s) = <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′|s,<span class="sym-pi">π</span>(s)) [ <span class="sym-r">R</span>(s,<span class="sym-pi">π</span>(s),s′) + <span class="sym-g">γ</span> · <span class="sym-v">V<sup>π</sup></span>(s′) ]
+        </div>
+      </div>
+      <div class="formula-box" style="border-left-color:var(--teal);margin-bottom:24px">
+        <div class="formula-label" style="color:var(--teal)">Step 2 — Policy Improvement (greedy update)</div>
+        <div class="formula-code">
+          <span class="sym-pi">π′</span>(s) = <span class="sym-max">argmax</span><sub>a</sub> <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′|s,a) [ <span class="sym-r">R</span>(s,a,s′) + <span class="sym-g">γ</span> · <span class="sym-v">V<sup>π</sup></span>(s′) ]
+        </div>
+        <div style="font-size:.74rem;color:var(--muted);margin-top:8px">Repeat until π′ = π everywhere → optimal policy found</div>
+      </div>
+      <!-- Algorithm Flow — PI highlighted -->
+      <div class="algo-flow-card" style="padding:34px 38px;margin-bottom:8px;perspective:1200px">
+        <div class="algo-flow-inner">
+          <div class="afc-title" style="color:var(--teal);font-size:.82rem;letter-spacing:3px;margin-bottom:26px">Algorithm Flow</div>
+          <div class="afc-rows">
+            <div class="afc-row" style="opacity:.45;margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid rgba(0,212,170,.18)">
+              <div class="afc-tag afc-tag-vi" style="font-size:.82rem;padding:5px 15px;min-width:42px">VI</div>
+              <div class="afc-segment">
+                <div class="afc-loop-group">
+                  <div class="afc-arc afc-arc-vi" style="font-size:.76rem;padding:5px 16px;letter-spacing:.3px">↻ &nbsp;Bellman sweeps until max|ΔV| &lt; θ</div>
+                  <div class="afc-nodes afc-nodes-vi" style="gap:10px">
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">V₀</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">V₁</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">···</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vstar" style="font-size:1rem;padding:8px 16px">V*</div>
+                  </div>
+                </div>
+                <div class="afc-arrow-extract" style="font-size:1.4rem;margin:0 14px">⟹</div>
+                <div class="afc-node fn-pistar" style="font-size:1rem;padding:8px 16px">π*</div>
+              </div>
+              <div class="afc-desc" style="font-size:.8rem;margin-top:10px">update value function · extract policy once at end</div>
+            </div>
+            <div class="afc-row">
+              <div class="afc-tag afc-tag-pi" style="font-size:.82rem;padding:5px 15px;min-width:42px">PI</div>
+              <div class="afc-segment">
+                <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">π₀</div>
+                <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                <div class="afc-loop-group">
+                  <div class="afc-arc afc-arc-pi" style="font-size:.76rem;padding:5px 16px;letter-spacing:.3px">↻ &nbsp;Eval → Improve until policy stable</div>
+                  <div class="afc-nodes afc-nodes-pi" style="gap:10px">
+                    <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">V<sup>π</sup></div>
+                    <div class="afc-cycle" style="font-size:1.2rem">⇄</div>
+                    <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">π′</div>
+                  </div>
+                </div>
+                <div class="afc-arrow-extract" style="font-size:1.4rem;margin:0 14px">⟹</div>
+                <div class="afc-node fn-pistar" style="font-size:1rem;padding:8px 16px">π*</div>
+              </div>
+              <div class="afc-desc" style="font-size:.8rem;margin-top:10px">alternate full evaluation &amp; greedy improvement</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Finding π*</div>
+      <!-- VI/PI scheme -->
+      <div class="algo-flow-card" style="padding:34px 38px;margin-bottom:28px;perspective:1200px">
+        <div class="algo-flow-inner">
+          <div class="afc-title" style="color:var(--blue);font-size:.82rem;letter-spacing:3px;margin-bottom:26px">Algorithm Flow</div>
+          <div class="afc-rows">
+            <!-- Value Iteration row -->
+            <div class="afc-row" style="margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid rgba(79,142,247,.18)">
+              <div class="afc-tag afc-tag-vi" style="font-size:.82rem;padding:5px 15px;min-width:42px">VI</div>
+              <div class="afc-segment">
+                <div class="afc-loop-group">
+                  <div class="afc-arc afc-arc-vi" style="font-size:.76rem;padding:5px 16px;letter-spacing:.3px">↻ &nbsp;Bellman sweeps until max|ΔV| &lt; θ</div>
+                  <div class="afc-nodes afc-nodes-vi" style="gap:10px">
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">V₀</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">V₁</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">···</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vstar" style="font-size:1rem;padding:8px 16px">V*</div>
+                  </div>
+                </div>
+                <div class="afc-arrow-extract" style="font-size:1.4rem;margin:0 14px">⟹</div>
+                <div class="afc-node fn-pistar" style="font-size:1rem;padding:8px 16px">π*</div>
+              </div>
+              <div class="afc-desc" style="font-size:.8rem;margin-top:10px">update value function · extract policy <em>once</em> at end</div>
+            </div>
+            <!-- Policy Iteration row -->
+            <div class="afc-row">
+              <div class="afc-tag afc-tag-pi" style="font-size:.82rem;padding:5px 15px;min-width:42px">PI</div>
+              <div class="afc-segment">
+                <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">π₀</div>
+                <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                <div class="afc-loop-group">
+                  <div class="afc-arc afc-arc-pi" style="font-size:.76rem;padding:5px 16px;letter-spacing:.3px">↻ &nbsp;Eval → Improve until policy stable</div>
+                  <div class="afc-nodes afc-nodes-pi" style="gap:10px">
+                    <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">V<sup>π</sup></div>
+                    <div class="afc-cycle" style="font-size:1.2rem">⇄</div>
+                    <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">π′</div>
+                  </div>
+                </div>
+                <div class="afc-arrow-extract" style="font-size:1.4rem;margin:0 14px">⟹</div>
+                <div class="afc-node fn-pistar" style="font-size:1rem;padding:8px 16px">π*</div>
+              </div>
+              <div class="afc-desc" style="font-size:.8rem;margin-top:10px">alternate full evaluation &amp; greedy improvement</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="nav-footer">
+      <button class="btn btn-secondary" onclick="switchTab(1)">← Grid World</button>
+      <button class="btn btn-primary" onclick="switchTab(3)">Next: Value Iteration →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 4 — VALUE ITERATION (interactive)
+  ══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-3">
+
+    <section>
+      <div class="section-title">Value Iteration</div>
+      <p style="color:var(--muted);font-size:.87rem;line-height:1.8;margin-bottom:18px">
+        Value Iteration (VI) finds the optimal value function <span style="color:var(--blue);font-family:'JetBrains Mono',monospace">V*</span> by repeatedly applying the <strong style="color:var(--text)">Bellman optimality update</strong> to every state until convergence. Once <span style="color:var(--blue);font-family:'JetBrains Mono',monospace">V*</span> is known, the optimal policy <span style="color:var(--teal);font-family:'JetBrains Mono',monospace">π*</span> is extracted in a single greedy pass — no model-free interaction needed.
+      </p>
+
+      <div class="formula-box" style="margin-bottom:12px">
+        <div class="formula-label">Bellman Optimality Update (repeated until max|ΔV| &lt; θ)</div>
+        <div class="formula-code">
+          <span class="sym-v">V</span>(s) ← <span class="sym-max">max</span><sub>a</sub> <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′|s,a) [ <span class="sym-r">R</span>(s,a,s′) + <span class="sym-g">γ</span> · <span class="sym-v">V</span>(s′) ]
+        </div>
+      </div>
+
+      <div class="formula-box" style="border-left-color:var(--teal);margin-bottom:24px">
+        <div class="formula-label" style="color:var(--teal)">Policy Extraction (once, after convergence)</div>
+        <div class="formula-code">
+          <span class="sym-pi">π*</span>(s) = <span class="sym-max">argmax</span><sub>a</sub> <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′|s,a) [ <span class="sym-r">R</span>(s,a,s′) + <span class="sym-g">γ</span> · <span class="sym-v">V*</span>(s′) ]
+        </div>
+      </div>
+
+      <!-- Algorithm Flow — larger version for VI tab -->
+      <div class="algo-flow-card" style="padding:34px 38px;margin-bottom:28px;perspective:1200px">
+        <div class="algo-flow-inner">
+          <div class="afc-title" style="color:var(--blue);font-size:.82rem;letter-spacing:3px;margin-bottom:26px">Algorithm Flow</div>
+          <div class="afc-rows">
+            <!-- Value Iteration row (highlighted) -->
+            <div class="afc-row" style="margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid rgba(79,142,247,.18)">
+              <div class="afc-tag afc-tag-vi" style="font-size:.82rem;padding:5px 15px;min-width:42px">VI</div>
+              <div class="afc-segment">
+                <div class="afc-loop-group">
+                  <div class="afc-arc afc-arc-vi" style="font-size:.76rem;padding:5px 16px;letter-spacing:.3px">↻ &nbsp;Bellman sweeps until max|ΔV| &lt; θ</div>
+                  <div class="afc-nodes afc-nodes-vi" style="gap:10px">
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">V₀</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">V₁</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">···</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vstar" style="font-size:1rem;padding:8px 16px">V*</div>
+                  </div>
+                </div>
+                <div class="afc-arrow-extract" style="font-size:1.4rem;margin:0 14px">⟹</div>
+                <div class="afc-node fn-pistar" style="font-size:1rem;padding:8px 16px">π*</div>
+              </div>
+              <div class="afc-desc" style="font-size:.8rem;margin-top:10px">update value function · extract policy <em>once</em> at end</div>
+            </div>
+            <!-- Policy Iteration row (dimmed for contrast) -->
+            <div class="afc-row" style="opacity:.45">
+              <div class="afc-tag afc-tag-pi" style="font-size:.82rem;padding:5px 15px;min-width:42px">PI</div>
+              <div class="afc-segment">
+                <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">π₀</div>
+                <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                <div class="afc-loop-group">
+                  <div class="afc-arc afc-arc-pi" style="font-size:.76rem;padding:5px 16px">↻ &nbsp;Eval → Improve until policy stable</div>
+                  <div class="afc-nodes afc-nodes-pi" style="gap:10px">
+                    <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">V<sup>π</sup></div>
+                    <div class="afc-cycle" style="font-size:1.2rem">⇄</div>
+                    <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">π′</div>
+                  </div>
+                </div>
+                <div class="afc-arrow-extract" style="font-size:1.4rem;margin:0 14px">⟹</div>
+                <div class="afc-node fn-pistar" style="font-size:1rem;padding:8px 16px">π*</div>
+              </div>
+              <div class="afc-desc" style="font-size:.8rem;margin-top:10px">alternate full evaluation &amp; greedy improvement</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Interactive Visualisation</div>
+
+      <!-- γ slider -->
+      <div class="algo-slider-row glass">
+        <span class="algo-slider-label">γ discount</span>
+        <input type="range" id="vi-gamma" min="50" max="99" value="90"
+          oninput="document.getElementById('vi-gamma-val').textContent=(this.value/100).toFixed(2);viReset()">
+        <span id="vi-gamma-val" class="algo-slider-val">0.90</span>
+        <span class="algo-slider-hint">Higher γ = more far-sighted · may need more iterations</span>
+      </div>
+      <div class="algo-slider-row glass">
+        <span class="algo-slider-label">Convergence metric</span>
+        <select id="vi-metric" class="vi-metric-select" onchange="viMetricChange()">
+          <option value="max">Max |ΔV|  —  L∞ norm (standard)</option>
+          <option value="mean">Mean |ΔV|  —  average change per state</option>
+          <option value="rms">RMS ΔV  —  root mean square change</option>
+          <option value="sum">Sum |ΔV|  —  L1 norm (total change)</option>
+          <option value="vstart">ΔV(start)  —  change at the start state only</option>
+        </select>
+        <span class="algo-slider-hint" id="vi-metric-hint">Standard stopping criterion · guaranteed convergence to V*</span>
+      </div>
+
+      <!-- Controls -->
+      <div class="algo-ctrl-row">
+        <button class="btn btn-secondary" id="vi-back-btn" onclick="viBack()" disabled>← Back</button>
+        <button class="btn btn-primary"   id="vi-play-btn" onclick="viPlay()">▶ Play</button>
+        <button class="btn btn-secondary" id="vi-next-btn" onclick="viStep()">Next →</button>
+        <button class="btn btn-danger"    onclick="viReset()">↺ Reset</button>
+        <button class="btn btn-gold"      onclick="viRunPolicy()">▷ Run Policy</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="algo-stats">
+        <div class="algo-stat"><div class="algo-stat-label">Iteration</div><div class="algo-stat-val" id="vi-iter">—</div></div>
+        <div class="algo-stat"><div class="algo-stat-label" id="vi-delta-label">Max |ΔV|</div><div class="algo-stat-val" id="vi-delta">—</div></div>
+        <div class="algo-stat"><div class="algo-stat-label">V(start)</div><div class="algo-stat-val" id="vi-vstart">—</div></div>
+        <div class="algo-stat"><div class="algo-stat-label">of N iters</div><div class="algo-stat-val" id="vi-total">—</div></div>
+      </div>
+
+      <!-- Main layout -->
+      <div class="algo-main">
+        <!-- Left: 3D scene -->
+        <div class="algo-scene-col">
+          <div class="algo-scene-header">
+            <span class="algo-scene-tag">3D Value Map</span>
+            <span class="algo-scene-hint">tile height = V(s) · drag to rotate</span>
+          </div>
+          <div class="algo-canvas-wrap" style="height:320px">
+            <canvas id="ch3-canvas"></canvas>
+            <div class="three-loading" id="ch3-loading">⟳ Loading 3D scene…</div>
+          </div>
+          <div class="algo-legend-row">
+            <span style="color:var(--coral);font-size:.7rem">Low V</span>
+            <div class="algo-val-bar"></div>
+            <span style="color:var(--teal);font-size:.7rem">High V</span>
+          </div>
+        </div>
+        <!-- Right: policy grid + chart -->
+        <div class="algo-right-col">
+          <div class="algo-panel-card">
+            <div class="algo-panel-title">Greedy Policy π(s)</div>
+            <div class="algo-panel-sub">arrow = best action · corner = V(s)</div>
+            <div class="policy-grid-2d" id="vi-policy-grid"></div>
+          </div>
+          <div class="algo-panel-card">
+            <div class="algo-panel-title" id="vi-chart-title">Convergence — Max |ΔV| per iteration</div>
+            <canvas id="conv-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Key Takeaways</div>
+      <div class="glass takeaways">
+        <ul class="takeaway-list">
+          <li>Value Iteration applies the Bellman optimality update repeatedly until values converge</li>
+          <li>Convergence is guaranteed — the Bellman operator is a contraction mapping</li>
+          <li>Tile height shows value: Goal area rises, Hole area sinks, path cells gradually lift</li>
+          <li>Higher γ makes the agent more far-sighted and may require more iterations</li>
+          <li>Once V* is found, the optimal policy π* is extracted in a single pass</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="nav-footer">
+      <button class="btn btn-secondary" onclick="switchTab(2)">← Key Equations</button>
+      <button class="btn btn-primary" onclick="switchTab(4)">Next: Policy Iteration →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 5 — POLICY ITERATION
+  ══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-4">
+
+    <section>
+      <div class="section-title">Policy Iteration</div>
+      <p style="color:var(--muted);font-size:.87rem;line-height:1.8;margin-bottom:18px">
+        Policy Iteration (PI) alternates between two steps: <strong style="color:var(--text)">Policy Evaluation</strong> — computing the exact value of the current policy — and <strong style="color:var(--text)">Policy Improvement</strong> — making the policy greedy with respect to those values. The process terminates when the policy no longer changes, guaranteeing the optimal policy <span style="color:var(--teal);font-family:'JetBrains Mono',monospace">π*</span>.
+      </p>
+
+      <div class="formula-box" style="margin-bottom:12px">
+        <div class="formula-label">Step 1 — Policy Evaluation (solve for V<sup>π</sup>, fixed policy)</div>
+        <div class="formula-code">
+          <span class="sym-v">V<sup>π</sup></span>(s) = <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′|s,<span class="sym-pi">π</span>(s)) [ <span class="sym-r">R</span>(s,<span class="sym-pi">π</span>(s),s′) + <span class="sym-g">γ</span> · <span class="sym-v">V<sup>π</sup></span>(s′) ]
+        </div>
+      </div>
+
+      <div class="formula-box" style="border-left-color:var(--teal);margin-bottom:18px">
+        <div class="formula-label" style="color:var(--teal)">Step 2 — Policy Improvement (greedy update)</div>
+        <div class="formula-code">
+          <span class="sym-pi">π′</span>(s) = <span class="sym-max">argmax</span><sub>a</sub> <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′|s,a) [ <span class="sym-r">R</span>(s,a,s′) + <span class="sym-g">γ</span> · <span class="sym-v">V<sup>π</sup></span>(s′) ]
+        </div>
+        <div style="font-size:.74rem;color:var(--muted);margin-top:8px">Repeat until π′ = π everywhere → optimal policy found</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">The Two-Phase Cycle</div>
+      <div class="glass" style="padding:0;overflow:hidden">
+        <div class="pi-cycle">
+          <div class="pi-phase eval">
+            <div class="pi-phase-title">Policy Evaluation</div>
+            <div class="pi-phase-body">Compute V<sup>π</sup> by solving<br>the Bellman expectation<br>equation for fixed π</div>
+          </div>
+          <div class="pi-arrow">→</div>
+          <div class="pi-phase impr">
+            <div class="pi-phase-title">Policy Improvement</div>
+            <div class="pi-phase-body">Make π greedy w.r.t. V<sup>π</sup><br>π_new(s) = argmax<sub>a</sub> Q(s,a)</div>
+          </div>
+          <div class="pi-arrow">→</div>
+          <div class="pi-phase done">
+            <div class="pi-phase-title">Convergence</div>
+            <div class="pi-phase-body">If π_new = π everywhere<br>→ Optimal policy found!</div>
+          </div>
+        </div>
+        <div class="formula-box" style="margin:0 20px 20px;border-left-color:var(--blue)">
+          <div class="formula-label">Policy Evaluation (Bellman Expectation)</div>
+          <div class="formula-code" style="font-size:.88rem"><span class="sym-v">V<sup>π</sup></span>(s) = <span class="sym-sum">Σ</span><sub>s′</sub> <span class="sym-p">P</span>(s′|s,<span class="sym-pi">π</span>(s)) [ <span class="sym-r">R</span>(s,<span class="sym-pi">π</span>(s),s′) + <span class="sym-g">γ</span> · <span class="sym-v">V<sup>π</sup></span>(s′) ]</div>
+        </div>
+      </div>
+    </section>
+
+
+      <!-- VI/PI scheme image — larger version for PI tab -->
+      <div class="algo-flow-card" style="padding:34px 38px;margin-bottom:28px;perspective:1200px">
+        <div class="algo-flow-inner">
+          <div class="afc-title" style="color:var(--teal);font-size:.82rem;letter-spacing:3px;margin-bottom:26px">Algorithm Flow</div>
+          <div class="afc-rows">
+
+            <!-- Value Iteration row (dimmed for contrast) -->
+            <div class="afc-row" style="opacity:.45;margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid rgba(0,212,170,.18)">
+              <div class="afc-tag afc-tag-vi" style="font-size:.82rem;padding:5px 15px;min-width:42px">VI</div>
+              <div class="afc-segment">
+                <div class="afc-loop-group">
+                  <div class="afc-arc afc-arc-vi" style="font-size:.76rem;padding:5px 16px;letter-spacing:.3px">↻ &nbsp;Bellman sweeps until max|ΔV| &lt; θ</div>
+                  <div class="afc-nodes afc-nodes-vi" style="gap:10px">
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">V₀</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">V₁</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vi" style="font-size:1rem;padding:8px 16px">···</div>
+                    <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                    <div class="afc-node fn-vstar" style="font-size:1rem;padding:8px 16px">V*</div>
+                  </div>
+                </div>
+                <div class="afc-arrow-extract" style="font-size:1.4rem;margin:0 14px">⟹</div>
+                <div class="afc-node fn-pistar" style="font-size:1rem;padding:8px 16px">π*</div>
+              </div>
+              <div class="afc-desc" style="font-size:.8rem;margin-top:10px">update value function · extract policy once at end</div>
+            </div>
+
+            <!-- Policy Iteration row (highlighted) -->
+            <div class="afc-row">
+              <div class="afc-tag afc-tag-pi" style="font-size:.82rem;padding:5px 15px;min-width:42px">PI</div>
+              <div class="afc-segment">
+                <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">π₀</div>
+                <div class="afc-arrow" style="font-size:1.1rem">→</div>
+                <div class="afc-loop-group">
+                  <div class="afc-arc afc-arc-pi" style="font-size:.76rem;padding:5px 16px;letter-spacing:.3px">↻ &nbsp;Eval → Improve until policy stable</div>
+                  <div class="afc-nodes afc-nodes-pi" style="gap:10px">
+                    <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">V<sup>π</sup></div>
+                    <div class="afc-cycle" style="font-size:1.2rem">⇄</div>
+                    <div class="afc-node fn-pi" style="font-size:1rem;padding:8px 16px">π′</div>
+                  </div>
+                </div>
+                <div class="afc-arrow-extract" style="font-size:1.4rem;margin:0 14px">⟹</div>
+                <div class="afc-node fn-pistar" style="font-size:1rem;padding:8px 16px">π*</div>
+              </div>
+              <div class="afc-desc" style="font-size:.8rem;margin-top:10px">alternate full evaluation &amp; greedy improvement</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    <section>
+      <div class="section-title">Interactive Visualisation</div>
+
+      <!-- γ slider -->
+      <div class="algo-slider-row glass">
+        <span class="algo-slider-label">γ discount</span>
+        <input type="range" id="pi-gamma" min="50" max="99" value="90"
+          oninput="document.getElementById('pi-gamma-val').textContent=(this.value/100).toFixed(2);piReset()">
+        <span id="pi-gamma-val" class="algo-slider-val">0.90</span>
+        <span class="algo-slider-hint">Higher γ = more far-sighted · may need more iterations</span>
+      </div>
+
+      <!-- Controls -->
+      <div class="algo-ctrl-row">
+        <button class="btn btn-secondary" id="pi-back-btn" onclick="piBack()" disabled>← Back</button>
+        <button class="btn btn-gold"      onclick="piRunAll()">▶▶ Run All</button>
+        <button class="btn btn-primary"   id="pi-next-btn" onclick="piNext()">Next →</button>
+        <button class="btn btn-danger"    onclick="piReset()">↺ Reset</button>
+        <button class="btn btn-sim"       onclick="piRunPolicy()">▷ Run Policy</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="algo-stats">
+        <div class="algo-stat"><div class="algo-stat-label">Iteration</div><div class="algo-stat-val" id="pi-iter-num">—</div></div>
+        <div class="algo-stat"><div class="algo-stat-label">Cells Changed</div><div class="algo-stat-val" id="pi-changed">—</div></div>
+        <div class="algo-stat"><div class="algo-stat-label">V(start)</div><div class="algo-stat-val" id="pi-vstart">—</div></div>
+        <div class="algo-stat"><div class="algo-stat-label">Status</div><div class="algo-stat-val" id="pi-status">—</div></div>
+      </div>
+
+      <!-- Main layout -->
+      <div class="algo-main">
+        <!-- Left: 3D scene -->
+        <div class="algo-scene-col">
+          <div class="algo-scene-header">
+            <span class="algo-scene-tag">3D Policy Map</span>
+            <span class="algo-scene-hint">cone = π(s) · drag to rotate</span>
+          </div>
+          <div class="algo-canvas-wrap" style="height:320px">
+            <canvas id="ch4-canvas"></canvas>
+            <div class="three-loading" id="ch4-loading">⟳ Loading 3D scene…</div>
+          </div>
+          <div class="algo-legend-row" style="justify-content:space-around">
+            <span style="color:#4f8ef7;font-size:.7rem">▲ UP</span>
+            <span style="color:#00d4aa;font-size:.7rem">▼ DOWN</span>
+            <span style="color:#ff6b6b;font-size:.7rem">◀ LEFT</span>
+            <span style="color:#b06eff;font-size:.7rem">▶ RIGHT</span>
+          </div>
+        </div>
+        <!-- Right: policy grid + log -->
+        <div class="algo-right-col">
+          <div class="algo-panel-card">
+            <div class="algo-panel-title">Policy π<sup>k</sup>(s)</div>
+            <div class="algo-panel-sub">arrow = action · corner = V<sup>π</sup>(s)</div>
+            <div class="policy-grid-2d" id="pi-policy-grid"></div>
+          </div>
+          <div class="algo-panel-card">
+            <div class="algo-panel-title">Iteration Log</div>
+            <div class="pi-iter-log" id="pi-iter-log">Press "Next →" to step through iterations…</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">VI vs PI Comparison</div>
+      <div class="glass" style="padding:0;overflow:hidden">
+        <table class="compare-table">
+          <thead><tr><th>Property</th><th>Value Iteration</th><th>Policy Iteration</th></tr></thead>
+          <tbody>
+            <tr><td>Outer iterations</td><td id="vi-outer-iters">—</td><td id="pi-outer-iters" class="highlight">—</td></tr>
+            <tr><td>V*(start)</td><td id="vi-vstar">—</td><td id="pi-vstar" class="highlight">—</td></tr>
+            <tr><td>Inner loop</td><td>One Bellman sweep per iter</td><td>Full policy eval to convergence</td></tr>
+            <tr><td>Needs model?</td><td>Yes (T and R)</td><td>Yes (T and R)</td></tr>
+            <tr><td>Convergence</td><td>Guaranteed (contraction)</td><td class="highlight">Guaranteed (finite policies)</td></tr>
+            <tr><td>Typical speed</td><td>More outer iters</td><td class="highlight">Fewer outer iters</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Key Takeaways</div>
+      <div class="glass takeaways">
+        <ul class="takeaway-list">
+          <li>Policy Iteration alternates between full evaluation and greedy improvement</li>
+          <li>It always converges — the policy space is finite so improvements must terminate</li>
+          <li>Both VI and PI find the exact same optimal policy π*</li>
+          <li>PI typically needs fewer outer iterations because evaluation is exact each time</li>
+          <li>Both algorithms require knowing the model T and R — they are model-based planners</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="nav-footer">
+      <button class="btn btn-secondary" onclick="switchTab(3)">← Value Iteration</button>
+      <button class="btn btn-gold" onclick="switchTab(5)" style="font-size:.88rem;padding:11px 22px">Try the Sandbox →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 6 — SANDBOX
+  ══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-5">
+    <section class="section">
+      <div class="section-title">Grid Designer Sandbox</div>
+      <div class="section-sub">Build your own MDP · tune probabilities &amp; discount · solve with VI or PI · evaluate the policy</div>
+
+      <!-- Config row: editor + settings -->
+      <div class="sb-config-row">
+
+        <!-- LEFT: Grid Editor -->
+        <div class="sb-left glass">
+          <div class="sb-panel-title">Grid Editor</div>
+
+          <!-- Size -->
+          <div class="sb-size-row">
+            <span class="sb-label">Size</span>
+            <input type="number" id="sb-rows" class="sb-num" min="3" max="8" value="4">
+            <span style="color:var(--muted);font-size:.9rem">×</span>
+            <input type="number" id="sb-cols" class="sb-num" min="3" max="8" value="4">
+            <button class="btn btn-sm btn-secondary" onclick="sbResizeGrid()">Apply</button>
+          </div>
+
+          <!-- Edit mode -->
+          <div class="sb-mode-row">
+            <span class="sb-label">Paint</span>
+            <div class="sb-mode-btns">
+              <button class="sb-mode-btn mode-start active" id="sbm-start"  onclick="sbSetMode('start')">S Start</button>
+              <button class="sb-mode-btn mode-normal"       id="sbm-normal" onclick="sbSetMode('normal')">· Normal</button>
+              <button class="sb-mode-btn mode-wall"         id="sbm-wall"   onclick="sbSetMode('wall')">█ Wall</button>
+              <button class="sb-mode-btn mode-goal"         id="sbm-goal"   onclick="sbSetMode('goal')">G Goal</button>
+              <button class="sb-mode-btn mode-hole"         id="sbm-hole"   onclick="sbSetMode('hole')">H Hole</button>
+              <button class="sb-mode-btn mode-reward"       id="sbm-reward" onclick="sbSetMode('reward')">$ Custom</button>
+            </div>
+          </div>
+
+          <!-- Custom reward row (shown only in reward mode) -->
+          <div class="sb-custom-row" id="sb-custom-row" style="display:none">
+            <span class="sb-label">Value</span>
+            <input type="number" id="sb-custom-reward" class="sb-reward-input" value="5" step="1">
+            <span style="color:var(--muted);font-size:.71rem">terminal with this reward</span>
+          </div>
+
+          <!-- Step cost -->
+          <div class="sb-custom-row">
+            <span class="sb-label">Step cost</span>
+            <input type="number" id="sb-step-cost" class="sb-reward-input" value="-1" step="0.5">
+            <span style="color:var(--muted);font-size:.71rem">per non-terminal step</span>
+          </div>
+
+          <!-- Grid canvas -->
+          <div class="sb-grid-wrap">
+            <div class="sb-grid" id="sb-grid"></div>
+          </div>
+
+          <!-- Grid actions -->
+          <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px">
+            <button class="btn btn-sm btn-secondary" onclick="sbResetGrid()">↺ Reset</button>
+            <button class="btn btn-sm btn-secondary" onclick="sbLoadDefault()">Load 4×4 Default</button>
+          </div>
+        </div>
+
+        <!-- RIGHT: Algorithm Settings -->
+        <div class="sb-right glass">
+          <div class="sb-panel-title">Algorithm Settings</div>
+
+          <!-- Algorithm -->
+          <div class="sb-setting-row">
+            <span class="sb-label">Algorithm</span>
+            <div class="sb-algo-btns">
+              <button class="sb-algo-btn active" id="sb-algo-vi" onclick="sbSetAlgo('VI')">Value Iteration</button>
+              <button class="sb-algo-btn"         id="sb-algo-pi" onclick="sbSetAlgo('PI')">Policy Iteration</button>
+            </div>
+          </div>
+
+          <!-- Convergence metric (VI only) -->
+          <div class="sb-setting-row" id="sb-metric-row">
+            <span class="sb-label">Metric</span>
+            <select id="sb-metric" class="vi-metric-select" style="font-size:.75rem">
+              <option value="max">Max |ΔV|  —  L∞ norm (standard)</option>
+              <option value="mean">Mean |ΔV|  —  average change</option>
+              <option value="rms">RMS ΔV  —  root mean square</option>
+              <option value="sum">Sum |ΔV|  —  L1 norm</option>
+              <option value="vstart">ΔV(start)  —  start state only</option>
+            </select>
+          </div>
+
+          <!-- Gamma -->
+          <div class="sb-setting-row">
+            <span class="sb-label">γ discount</span>
+            <input type="range" id="sb-gamma" min="10" max="99" value="90" class="sb-slider"
+              oninput="document.getElementById('sb-gamma-val').textContent=(this.value/100).toFixed(2)">
+            <span class="sb-val-display" id="sb-gamma-val">0.90</span>
+          </div>
+
+          <!-- Transition probabilities -->
+          <div style="margin:14px 0 8px">
+            <div class="sb-panel-title">Transition Probabilities</div>
+            <div class="sb-setting-row">
+              <span class="sb-label sb-label-sm">Intended</span>
+              <input type="range" id="sb-p-int" min="0" max="100" value="80" class="sb-slider" oninput="sbUpdateProbs()">
+              <span class="sb-val-display" id="sb-p-int-val">80%</span>
+            </div>
+            <div class="sb-setting-row">
+              <span class="sb-label sb-label-sm">Slip Left</span>
+              <input type="range" id="sb-p-sl" min="0" max="100" value="10" class="sb-slider" oninput="sbUpdateProbs()">
+              <span class="sb-val-display" id="sb-p-sl-val">10%</span>
+            </div>
+            <div class="sb-setting-row">
+              <span class="sb-label sb-label-sm">Slip Right</span>
+              <input type="range" id="sb-p-sr" min="0" max="100" value="10" class="sb-slider" oninput="sbUpdateProbs()">
+              <span class="sb-val-display" id="sb-p-sr-val">10%</span>
+            </div>
+            <div class="sb-prob-sum ok" id="sb-prob-sum">Sum: 100% ✓</div>
+
+            <!-- Presets -->
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+              <span class="sb-label" style="align-self:center">Presets</span>
+              <button class="btn btn-xs btn-secondary" onclick="sbProbPreset(100,0,0)">Deterministic</button>
+              <button class="btn btn-xs btn-secondary" onclick="sbProbPreset(80,10,10)">Standard MDP</button>
+              <button class="btn btn-xs btn-secondary" onclick="sbProbPreset(60,20,20)">Slippery</button>
+              <button class="btn btn-xs btn-secondary" onclick="sbProbPreset(40,30,30)">Very Slippery</button>
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div style="margin-top:16px;padding:12px;background:rgba(0,0,0,.25);border-radius:8px;font-size:.72rem;line-height:1.9;color:var(--muted)">
+            <div><span style="color:var(--blue);font-weight:700">S</span> = Start &nbsp;
+                 <span style="color:rgba(255,255,255,.2)">·</span> = Normal (step cost) &nbsp;
+                 <span style="color:#6b6b9a">█</span> = Wall</div>
+            <div><span style="color:var(--teal);font-weight:700">G</span> = Goal (positive terminal) &nbsp;
+                 <span style="color:var(--coral);font-weight:700">H</span> = Hole (negative terminal)</div>
+            <div><span style="color:var(--gold);font-weight:700">$</span> = Custom terminal reward &nbsp;
+                 <span style="color:var(--muted)">Right-click = remove</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Run row -->
+      <div class="sb-run-row">
+        <button class="btn btn-gold sb-run-btn" onclick="sbRun()">▶ Run Algorithm</button>
+        <span class="sb-status" id="sb-status"></span>
+      </div>
+
+      <!-- Results (shown after run) -->
+      <div id="sb-results" style="display:none">
+
+        <!-- Stats -->
+        <div class="algo-stats" style="margin-bottom:12px">
+          <div class="algo-stat"><div class="algo-stat-label">Algorithm</div><div class="algo-stat-val" id="sb-res-algo">—</div></div>
+          <div class="algo-stat"><div class="algo-stat-label">Iteration</div><div class="algo-stat-val" id="sb-res-iters">—</div></div>
+          <div class="algo-stat"><div class="algo-stat-label">V(start)</div><div class="algo-stat-val" id="sb-res-vstart">—</div></div>
+          <div class="algo-stat"><div class="algo-stat-label" id="sb-res-metric-lbl">Max |ΔV|</div><div class="algo-stat-val" id="sb-res-conv">—</div></div>
+          <div class="algo-stat"><div class="algo-stat-label">γ used</div><div class="algo-stat-val" id="sb-res-gamma">—</div></div>
+        </div>
+
+        <!-- Stats button -->
+        <div style="margin-bottom:16px">
+          <button class="btn btn-secondary btn-sm" onclick="sbShowStats()" style="padding:8px 18px;font-size:.8rem">&#9998; Statistics &amp; Graphs</button>
+        </div>
+
+        <!-- Step controls -->
+        <div class="algo-ctrl-row" style="margin-bottom:16px">
+          <button class="btn btn-secondary btn-sm" id="sb-back-btn" onclick="sbStepBack()" disabled>← Back</button>
+          <button class="btn btn-primary btn-sm"   id="sb-play-btn" onclick="sbPlayToggle()">▶ Play</button>
+          <button class="btn btn-secondary btn-sm" id="sb-next-btn" onclick="sbStepNext()">Next →</button>
+          <button class="btn btn-secondary btn-sm"                  onclick="sbGoToEnd()">End ↠</button>
+          <span id="sb-step-info" style="font-size:.76rem;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-left:4px"></span>
+        </div>
+
+        <!-- Policy grid + convergence chart -->
+        <div class="algo-main">
+          <div class="algo-scene-col">
+            <div class="algo-panel-card">
+              <div class="algo-panel-title">Optimal Policy π*(s) &amp; Value Function V*(s)</div>
+              <div class="algo-panel-sub">arrow = best action · corner number = V*(s)</div>
+              <div class="policy-grid-2d" id="sb-policy-grid" style="margin-top:10px"></div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
+                <button class="btn btn-sm btn-gold" id="sb-anim-btn" onclick="sbAnimateEpisode()">▶ Animate Episode</button>
+                <label style="color:var(--muted);font-size:.76rem">Speed:
+                  <select id="sb-anim-speed" style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text);font-size:.75rem;margin-left:5px;outline:none">
+                    <option value="600" style="background:var(--bg)">Slow</option>
+                    <option value="350" selected style="background:var(--bg)">Normal</option>
+                    <option value="150" style="background:var(--bg)">Fast</option>
+                  </select>
+                </label>
+                <span id="sb-anim-status" style="font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--muted)"></span>
+              </div>
+            </div>
+          </div>
+          <div class="algo-right-col">
+            <div class="algo-panel-card">
+              <div class="algo-panel-title" id="sb-chart-title">Convergence</div>
+              <canvas id="sb-conv-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Episode evaluation -->
+        <div class="glass" style="padding:20px;margin-top:16px;border-radius:14px">
+          <div class="sb-panel-title">Policy Evaluation via Simulation</div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:10px 0 16px">
+            <button class="btn btn-primary" onclick="sbEvaluate()">▶ Run Episodes</button>
+            <label style="color:var(--muted);font-size:.8rem">Episodes:
+              <input type="number" id="sb-ep-count" value="200" min="10" max="2000"
+                style="width:58px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:5px;padding:3px 7px;color:var(--text);font-size:.8rem;margin-left:6px;outline:none">
+            </label>
+            <label style="color:var(--muted);font-size:.8rem">Max steps/ep:
+              <input type="number" id="sb-ep-maxsteps" value="100" min="10" max="500"
+                style="width:58px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:5px;padding:3px 7px;color:var(--text);font-size:.8rem;margin-left:6px;outline:none">
+            </label>
+          </div>
+          <div class="sb-eval-stats" id="sb-eval-stats" style="display:none">
+            <div class="sb-eval-stat"><div class="lbl">Win %</div><div class="val" id="sb-ev-win" style="color:var(--teal)">—</div></div>
+            <div class="sb-eval-stat"><div class="lbl">Hole %</div><div class="val" id="sb-ev-hole" style="color:var(--coral)">—</div></div>
+            <div class="sb-eval-stat"><div class="lbl">Timeout %</div><div class="val" id="sb-ev-timeout" style="color:var(--muted)">—</div></div>
+            <div class="sb-eval-stat"><div class="lbl">Avg Reward</div><div class="val" id="sb-ev-reward">—</div></div>
+            <div class="sb-eval-stat"><div class="lbl">Avg Steps</div><div class="val" id="sb-ev-steps">—</div></div>
+          </div>
+          <div id="sb-trace-wrap" style="display:none;margin-top:14px">
+            <div class="sb-panel-title" style="margin-bottom:6px">Last Episode Trace</div>
+            <div id="sb-trace" style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);max-height:90px;overflow-y:auto;background:rgba(0,0,0,.25);padding:8px 10px;border-radius:7px;line-height:1.9;white-space:pre-wrap"></div>
+          </div>
+        </div>
+
+      </div><!-- end #sb-results -->
+
+      <div class="nav-footer">
+        <button class="btn btn-secondary" onclick="switchTab(4)">← Policy Iteration</button>
+        <button class="btn btn-gold" style="font-size:.88rem;padding:11px 22px">🎓 Tutorial Complete!</button>
+      </div>
+    </section>
+  </div>
+
+</div><!-- end page-wrap -->
+
+<!-- ── Statistics & Graphs Modal ─────────────────────────────────────── -->
+<div class="sb-stats-modal" id="sb-stats-modal" style="display:none" onclick="if(event.target===this)sbHideStats()">
+  <div class="sb-stats-panel">
+    <button class="sb-stats-close" onclick="sbHideStats()">&#x2715;</button>
+    <div class="sb-stats-heading" id="sb-stats-heading">Algorithm Statistics</div>
+    <div class="sb-stats-sub" id="sb-stats-sub"></div>
+
+    <!-- Summary stat cards -->
+    <div class="sb-stats-cards" id="sb-stats-cards"></div>
+
+    <!-- V(s) over iterations — one line per state -->
+    <div class="sb-stats-chart-wrap">
+      <div class="sb-stats-chart-lbl" id="sb-vstate-chart-lbl">V(s) per Iteration</div>
+      <canvas id="sb-vstate-chart"></canvas>
+    </div>
+
+    <!-- Final V* bar chart -->
+    <div class="sb-stats-chart-wrap">
+      <div class="sb-stats-chart-lbl">Final V*(s) — All Non-Terminal States</div>
+      <canvas id="sb-vfinal-chart"></canvas>
+    </div>
+
+    <!-- Convergence metric over iterations -->
+    <div class="sb-stats-chart-wrap">
+      <div class="sb-stats-chart-lbl" id="sb-sconv-chart-lbl">Convergence Metric over Iterations</div>
+      <canvas id="sb-sconv-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   PARTICLES
+═══════════════════════════════════════════════════════════ */
+(function(){
+  const c=document.getElementById('particles');
+  const ctx=c.getContext('2d');
+  let W,H,pts=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;pts=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,o:Math.random()*.4+.1}))}
+  resize();window.addEventListener('resize',resize);
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=W;if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(79,142,247,${p.o})`;ctx.fill();
+    });
+    // connect close pairs
+    for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++){
+      const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(79,142,247,${.12*(1-d/120)})`;ctx.stroke()}
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   TAB SWITCHING
+═══════════════════════════════════════════════════════════ */
+let currentTab=0;
+const ch2Inited={},ch3Inited={},ch4Inited={};
+
+function switchTab(n){
+  // hide/show panels
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+  document.getElementById('progress-bar').style.width=((n+1)/6*100)+'%';
+  currentTab=n;
+
+  // Lazy-init Three.js scenes — setTimeout(0) lets the browser finish painting
+  // the newly-active panel before the WebGL renderer reads clientWidth
+  if(n===1&&!ch2Inited.done){
+    ch2Inited.done=true;
+    setTimeout(()=>{ if(window._initCh2) window._initCh2(); else window._pendingCh2=true; },0);
+  }
+  if(n===3&&!ch3Inited.done){
+    ch3Inited.done=true;
+    try{ initVIChart(); }catch(e){ console.warn('initVIChart error:',e); }
+    setTimeout(()=>{ if(window._initCh3) window._initCh3(); else window._pendingCh3=true; },0);
+  }
+  if(n===4&&!ch4Inited.done){
+    ch4Inited.done=true;
+    setTimeout(()=>{ if(window._initCh4) window._initCh4(); else window._pendingCh4=true; },0);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GRID WORLD CONFIG (dynamic)
+═══════════════════════════════════════════════════════════ */
+let gridConfig = {
+  rows: 4,
+  cols: 4,
+  start: [0, 0],
+  terminals: { '3,3': 10, '2,3': -10 },  // key -> reward value
+  walls: new Set(['1,1'])
+};
+const ACTIONS=['UP','DOWN','LEFT','RIGHT'];
+const DELTAS={UP:[-1,0],DOWN:[1,0],LEFT:[0,-1],RIGHT:[0,1]};
+const SLIPS={UP:['LEFT','RIGHT'],DOWN:['LEFT','RIGHT'],LEFT:['UP','DOWN'],RIGHT:['UP','DOWN']};
+const ARROWS_MAP={UP:'↑',DOWN:'↓',LEFT:'←',RIGHT:'→'};
+
+function isTerminal(r,c){return `${r},${c}` in gridConfig.terminals}
+function isWall(r,c){return gridConfig.walls.has(`${r},${c}`)}
+function isStart(r,c){return r===gridConfig.start[0]&&c===gridConfig.start[1]}
+function termReward(r,c){return gridConfig.terminals[`${r},${c}`]||0}
+function isPositiveTerm(r,c){return isTerminal(r,c)&&termReward(r,c)>0}
+function isNegativeTerm(r,c){return isTerminal(r,c)&&termReward(r,c)<0}
+function isValid(r,c){return r>=0&&r<gridConfig.rows&&c>=0&&c<gridConfig.cols&&!isWall(r,c)}
+
+// Returns [[prob,nr,nc,reward,done], ...]
+function getTrans(r,c,action){
+  if(isTerminal(r,c))return[[1.0,r,c,0.0,true]];
+  const tp=gridConfig.transProbs||{intended:.8,slipLeft:.1,slipRight:.1};
+  const stepCost=gridConfig.stepCost??-1;
+  const[sl,sr]=SLIPS[action];
+  return[[action,tp.intended],[sl,tp.slipLeft],[sr,tp.slipRight]].map(([act,prob])=>{
+    const[dr,dc]=DELTAS[act];
+    let nr=r+dr,nc=c+dc;
+    if(!isValid(nr,nc)){nr=r;nc=c}
+    const rew=isTerminal(nr,nc)?termReward(nr,nc):stepCost;
+    return[prob,nr,nc,rew,isTerminal(nr,nc)];
+  });
+}
+
+function sampleTrans(r,c,action){
+  const ts=getTrans(r,c,action);
+  let rnd=Math.random(),cum=0;
+  for(const t of ts){cum+=t[0];if(rnd<cum)return t;}
+  return ts[ts.length-1];
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CHAPTER 2 — RANDOM POLICY
+═══════════════════════════════════════════════════════════ */
+let epRunning=false;
+
+function resetEpisode(){
+  epRunning=false;
+  document.getElementById('ep-steps').textContent='—';
+  document.getElementById('ep-reward').textContent='—';
+  document.getElementById('ep-outcome').textContent='—';
+  document.getElementById('ep-log').textContent='Click "Run Random Policy" to start…';
+  const[sr,sc]=gridConfig.start;
+  if(window._ch2MoveAgent) window._ch2MoveAgent(sr,sc,false);
+}
+
+async function runRandomPolicy(){
+  if(epRunning)return;
+  epRunning=true;
+  const[sr0,sc0]=gridConfig.start;
+  let r=sr0,c=sc0,totalR=0,steps=0;
+  const logEl=document.getElementById('ep-log');
+  logEl.innerHTML='';
+  if(window._ch2MoveAgent) window._ch2MoveAgent(r,c,false);
+  while(steps<50&&epRunning){
+    const a=ACTIONS[Math.floor(Math.random()*4)];
+    const[,nr,nc,rew,done]=sampleTrans(r,c,a);
+    totalR+=rew;steps++;
+    if(window._ch2MoveAgent) window._ch2MoveAgent(nr,nc,done);
+    const rc=rew>0?'log-reward-pos':rew<0?'log-reward-neg':'';
+    logEl.innerHTML+=`(${r},${c}) <span style="color:var(--blue)">${ARROWS_MAP[a]}</span> → (${nr},${nc}) <span class="${rc}">${rew>0?'+':''}${rew}</span><br>`;
+    logEl.scrollTop=logEl.scrollHeight;
+    r=nr;c=nc;
+    document.getElementById('ep-steps').textContent=steps;
+    document.getElementById('ep-reward').textContent=totalR.toFixed(0);
+    await new Promise(res=>setTimeout(res,220));
+    if(done)break;
+  }
+  const outcome=isPositiveTerm(r,c)?'✅ Goal':isNegativeTerm(r,c)?'❌ Penalty':'⏱ Timeout';
+  document.getElementById('ep-outcome').textContent=outcome;
+  epRunning=false;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VALUE ITERATION
+═══════════════════════════════════════════════════════════ */
+function valueIteration(gamma=.9,theta=1e-6){
+  const gc=gridConfig;
+  const V=Array.from({length:gc.rows},()=>Array(gc.cols).fill(0));
+  for(const key in gc.terminals){const[tr,tc]=key.split(',').map(Number);V[tr][tc]=gc.terminals[key];}
+  const[sr,sc]=gc.start;
+  const snaps=[];
+  for(let iter=0;iter<500;iter++){
+    const Vn=V.map(row=>[...row]);
+    const diffs=[];
+    let vStartPrev=V[sr][sc];
+    for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+      if(isTerminal(r,c)||isWall(r,c))continue;
+      let bestQ=-Infinity;
+      for(const a of ACTIONS){
+        let q=0;
+        for(const [prob,nr,nc,rew] of getTrans(r,c,a)){q+=prob*(rew+gamma*V[nr][nc])}
+        if(q>bestQ)bestQ=q;
+      }
+      Vn[r][c]=bestQ;
+      diffs.push(Math.abs(Vn[r][c]-V[r][c]));
+    }
+    for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++) V[r][c]=Vn[r][c];
+    const maxD=diffs.length?Math.max(...diffs):0;
+    const meanD=diffs.length?diffs.reduce((a,b)=>a+b,0)/diffs.length:0;
+    const rmsD=diffs.length?Math.sqrt(diffs.reduce((a,b)=>a+b*b,0)/diffs.length):0;
+    const sumD=diffs.reduce((a,b)=>a+b,0);
+    const vStartD=Math.abs(V[sr][sc]-vStartPrev);
+    snaps.push({iter:iter+1,delta:maxD,metrics:{max:maxD,mean:meanD,rms:rmsD,sum:sumD,vstart:vStartD},V:V.map(row=>[...row])});
+    if(maxD<theta)break;
+  }
+  return{V,policy:extractPolicy(V,gamma),snaps};
+}
+
+function extractPolicy(V,gamma=.9){
+  const gc=gridConfig;
+  const pol={};
+  for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+    if(isTerminal(r,c)||isWall(r,c))continue;
+    let best='RIGHT',bestQ=-Infinity;
+    for(const a of ACTIONS){
+      let q=0;
+      for(const [prob,nr,nc,rew] of getTrans(r,c,a)) q+=prob*(rew+gamma*V[nr][nc]);
+      if(q>bestQ){bestQ=q;best=a}
+    }
+    pol[`${r},${c}`]=best;
+  }
+  return pol;
+}
+
+// VI state
+let viState={snaps:[],idx:0,playing:false,chart:null,lastGamma:.9};
+
+const VI_METRIC_META={
+  max:  {label:'Max |ΔV|',  yLabel:'max |ΔV|',  hint:'Standard stopping criterion · guaranteed convergence to V*',         color:'#4f8ef7'},
+  mean: {label:'Mean |ΔV|', yLabel:'mean |ΔV|', hint:'Average change across all states · smoother than max but less conservative', color:'#00d4aa'},
+  rms:  {label:'RMS ΔV',   yLabel:'RMS ΔV',    hint:'Root mean square change · penalises large individual errors more than mean', color:'#ffd43b'},
+  sum:  {label:'Sum |ΔV|',  yLabel:'sum |ΔV|',  hint:'Total L1 change · grows with grid size · useful for relative comparison',  color:'#b06eff'},
+  vstart:{label:'ΔV(start)',yLabel:'ΔV(start)', hint:'Change at the start state only · fast proxy · may converge earlier or later', color:'#ff6b6b'},
+};
+function viGetMetric(){return document.getElementById('vi-metric')?.value||'max';}
+function viSnapMetricVal(snap){const m=viGetMetric();return snap.metrics?snap.metrics[m]:snap.delta;}
+
+function initVIChart(){
+  if(viState.chart) return;
+  const ctx=document.getElementById('conv-chart').getContext('2d');
+  const meta=VI_METRIC_META[viGetMetric()]||VI_METRIC_META.max;
+  viState.chart=new Chart(ctx,{
+    type:'line',
+    data:{labels:[],datasets:[{label:meta.label,data:[],borderColor:meta.color,backgroundColor:meta.color+'14',borderWidth:2,pointRadius:2,tension:.4}]},
+    options:{responsive:true,animation:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:t=>'Iter '+t[0].label}}},
+      scales:{x:{ticks:{color:'#7b7fa0',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'},title:{display:true,text:'Iteration',color:'#7b7fa0',font:{size:9}}},
+              y:{ticks:{color:'#7b7fa0',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'},type:'logarithmic',title:{display:true,text:meta.yLabel,color:'#7b7fa0',font:{size:9}}}}}
+  });
+}
+
+function viRefreshChart(){
+  if(!viState.chart||!viState.snaps.length) return;
+  const m=viGetMetric();const meta=VI_METRIC_META[m]||VI_METRIC_META.max;
+  viState.chart.data.labels=viState.snaps.map(s=>s.iter);
+  viState.chart.data.datasets[0].data=viState.snaps.map(s=>viSnapMetricVal(s));
+  viState.chart.data.datasets[0].borderColor=meta.color;
+  viState.chart.data.datasets[0].backgroundColor=meta.color+'14';
+  viState.chart.options.scales.y.title.text=meta.yLabel;
+  // Re-highlight current
+  viState.chart.data.datasets[0].pointBackgroundColor=viState.snaps.map((_,i)=>i===viState.idx?'#ffd43b':'transparent');
+  viState.chart.data.datasets[0].pointRadius=viState.snaps.map((_,i)=>i===viState.idx?5:2);
+  viState.chart.update('none');
+  document.getElementById('vi-delta-label').textContent=meta.label;
+  document.getElementById('vi-chart-title').textContent='Convergence — '+meta.label+' per iteration';
+  const hint=document.getElementById('vi-metric-hint');if(hint) hint.textContent=meta.hint;
+}
+
+function viMetricChange(){
+  // Don't re-run VI — just refresh the chart and current stat display
+  viRefreshChart();
+  if(viState.snaps.length&&viState.idx<viState.snaps.length){
+    const snap=viState.snaps[viState.idx];
+    document.getElementById('vi-delta').textContent=viSnapMetricVal(snap).toExponential(2);
+  }
+}
+
+function viEnsureSnaps(){
+  if(!viState.snaps.length){
+    const gamma=parseInt(document.getElementById('vi-gamma').value)/100;
+    viState.lastGamma=gamma;
+    viState.snaps=valueIteration(gamma).snaps;
+    viState.idx=0;
+    document.getElementById('vi-total').textContent=viState.snaps.length;
+    viRefreshChart();
+  }
+}
+
+function viExplainText(snap, prevSnap){
+  const gc=gridConfig;
+  const n=viState.snaps.length;
+  const total=n;
+  const gamma=viState.lastGamma||.9;
+  const pol=extractPolicy(snap.V,gamma);
+  const prevPol=prevSnap?extractPolicy(prevSnap.V,gamma):null;
+  let changedCells=0;
+  if(prevPol){for(const k in pol)if(pol[k]!==prevPol[k])changedCells++;}
+
+  // Count non-zero, non-terminal cells
+  let nonZero=0;
+  const totalFree=(()=>{let n=0;for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++) if(!isTerminal(r,c)&&!isWall(r,c))n++;return n;})();
+  for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+    if(!isTerminal(r,c)&&!isWall(r,c)&&Math.abs(snap.V[r][c])>0.001) nonZero++;
+  }
+
+  const isFirst=snap.iter===1;
+  const isLast=snap.iter===total;
+  const isEarly=snap.iter<=3;
+  const isMid=snap.iter>3&&snap.iter<total-2;
+  const posTerms=Object.entries(gc.terminals).filter(([,v])=>v>0);
+  const negTerms=Object.entries(gc.terminals).filter(([,v])=>v<0);
+  const posLabel=posTerms.length?`Goal(+${posTerms[0][1]})`:'Goal';
+  const negLabel=negTerms.length?`Penalty(${negTerms[0][1]})`:'Penalty';
+
+  let lines=[];
+  if(isFirst){
+    lines.push(`<b>First Bellman sweep.</b> All values start at 0 (except ${posLabel} and ${negLabel}). The update formula compares each action's expected return.`);
+    lines.push(`Only states directly adjacent to terminals received non-zero updates — values are starting to propagate outward.`);
+  } else if(isEarly){
+    lines.push(`<b>Values are spreading outward</b> from the terminals. ${nonZero} of ${totalFree} free cells now have non-zero values.`);
+    if(changedCells>0) lines.push(`The greedy policy changed in <b>${changedCells} cell(s)</b> — arrows are updating as estimates improve.`);
+  } else if(isMid){
+    lines.push(`Values are propagating further across the grid. The discount factor γ=${gamma.toFixed(2)} weakens values with each hop from terminals.`);
+    if(changedCells>0) lines.push(`Policy changed in <b>${changedCells} cell(s)</b> this sweep.`);
+    else lines.push(`Policy is <b>stable</b> this iteration — arrows have not changed.`);
+  } else {
+    lines.push(`Values are nearly converged. Max change this sweep: <b>${snap.delta.toExponential(2)}</b> — extremely small.`);
+    lines.push(`Policy is fully stable. All arrows point along the optimal path to Goal.`);
+  }
+  if(isLast){
+    lines.push(`✅ <b>CONVERGED</b> — max ΔV &lt; θ after ${total} iterations. Optimal V* and π* found!`);
+  }
+  const[sr,sc]=gc.start;
+  let valStr=`V(start)=${snap.V[sr][sc].toFixed(3)}`;
+  for(const[k,v] of posTerms) valStr+=` · V(goal@${k})=${snap.V[k.split(',')[0]][k.split(',')[1]].toFixed(1)}`;
+  for(const[k,v] of negTerms) valStr+=` · V(penalty@${k})=${snap.V[k.split(',')[0]][k.split(',')[1]].toFixed(1)}`;
+  lines.push(`<span style="color:var(--muted)">${valStr}</span>`);
+  return lines.join('<br>');
+}
+
+function viUpdateButtons(){
+  document.getElementById('vi-back-btn').disabled=viState.idx<=0;
+  document.getElementById('vi-next-btn').disabled=viState.idx>=viState.snaps.length;
+}
+
+function viApplyAt(idx){
+  if(idx<0||idx>=viState.snaps.length) return;
+  const snap=viState.snaps[idx];
+  const prevSnap=idx>0?viState.snaps[idx-1]:null;
+  const gamma=viState.lastGamma||.9;
+  const pol=extractPolicy(snap.V,gamma);
+
+  const[vsr,vsc]=gridConfig.start;
+  document.getElementById('vi-iter').textContent=snap.iter;
+  document.getElementById('vi-delta').textContent=viSnapMetricVal(snap).toExponential(2);
+  document.getElementById('vi-vstart').textContent=snap.V[vsr][vsc].toFixed(3);
+  if(window._ch3UpdateValues) window._ch3UpdateValues(snap.V);
+  if(window._ch3UpdatePolicy) window._ch3UpdatePolicy(pol);
+
+  // Show policy + values on 2D grid at every iteration
+  renderPolicyGrid(pol,snap.V,'vi-policy-grid');
+
+  // Chart highlight: mark current iteration with a point
+  if(viState.chart){
+    viState.chart.data.datasets[0].pointBackgroundColor=viState.snaps.map((_,i)=>i===idx?'#ffd43b':'transparent');
+    viState.chart.data.datasets[0].pointRadius=viState.snaps.map((_,i)=>i===idx?5:2);
+    viState.chart.update('none');
+  }
+}
+
+function viReset(){
+  viState.playing=false;
+  document.getElementById('vi-play-btn').textContent='▶ Play';
+  viState.snaps=[];viState.idx=0;viState.lastGamma=.9;
+  document.getElementById('vi-iter').textContent='0';
+  document.getElementById('vi-delta').textContent='—';
+  document.getElementById('vi-vstart').textContent='—';
+  document.getElementById('vi-total').textContent='—';
+  const resetMeta=VI_METRIC_META[viGetMetric()]||VI_METRIC_META.max;
+  document.getElementById('vi-delta-label').textContent=resetMeta.label;
+  document.getElementById('vi-chart-title').textContent='Convergence — '+resetMeta.label+' per iteration';
+  const hintEl=document.getElementById('vi-metric-hint');if(hintEl) hintEl.textContent=resetMeta.hint;
+  if(viState.chart){viState.chart.data.labels=[];viState.chart.data.datasets[0].data=[];viState.chart.update('none')}
+  renderPolicyGrid({},null,'vi-policy-grid');
+  const gc=gridConfig;
+  if(window._ch3UpdateValues) window._ch3UpdateValues(Array.from({length:gc.rows},()=>Array(gc.cols).fill(0)));
+  if(window._ch3UpdatePolicy) window._ch3UpdatePolicy({});
+  viUpdateButtons();
+}
+
+function viStep(){
+  viEnsureSnaps();
+  if(viState.idx<viState.snaps.length){
+    viApplyAt(viState.idx);
+    viState.idx++;
+  }
+  viUpdateButtons();
+}
+
+function viBack(){
+  viEnsureSnaps();
+  if(viState.idx>1){
+    viState.idx--;
+    viApplyAt(viState.idx-1);
+  } else if(viState.idx===1){
+    viState.idx=0;
+    viReset();
+    return;
+  }
+  viUpdateButtons();
+}
+
+async function viPlay(){
+  if(viState.playing){viState.playing=false;document.getElementById('vi-play-btn').textContent='▶ Play';return}
+  viEnsureSnaps();
+  viState.playing=true;
+  document.getElementById('vi-play-btn').textContent='⏸ Pause';
+  while(viState.playing&&viState.idx<viState.snaps.length){
+    viApplyAt(viState.idx);
+    viState.idx++;
+    viUpdateButtons();
+    await new Promise(res=>setTimeout(res,120));
+  }
+  viState.playing=false;
+  document.getElementById('vi-play-btn').textContent='▶ Play';
+  viUpdateButtons();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   POLICY GRID RENDERERS
+═══════════════════════════════════════════════════════════ */
+function renderPolicyGrid(pol,V,elId){
+  const el=document.getElementById(elId);
+  const gc=gridConfig;
+  el.style.gridTemplateColumns=`repeat(${gc.cols},1fr)`;
+  el.innerHTML='';
+  const cellSz=Math.max(0.7,1.3-(gc.cols-4)*.1);
+  for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+    const div=document.createElement('div');
+    div.className='pol-cell';
+    const key=`${r},${c}`;
+    if(key in gc.terminals){
+      const rew=gc.terminals[key];
+      if(rew>0){div.classList.add('goal');div.innerHTML=`G<span class="pol-cell-val">+${rew}</span>`}
+      else{div.classList.add('hole');div.innerHTML=`H<span class="pol-cell-val">${rew}</span>`}
+    } else if(gc.walls.has(key)){
+      div.classList.add('wall');div.textContent='█';
+    } else{
+      if(isStart(r,c))div.classList.add('start');
+      const a=pol[key];
+      const arrow=document.createElement('span');
+      arrow.style.fontSize=`${cellSz}rem`;
+      arrow.textContent=a?ARROWS_MAP[a]:'·';
+      div.appendChild(arrow);
+      if(V){
+        const vd=document.createElement('span');vd.className='pol-cell-val';
+        vd.textContent=V[r][c].toFixed(1);div.appendChild(vd);
+      }
+    }
+    el.appendChild(div);
+  }
+}
+
+function renderPolicyGrid2(pol,V,elId){renderPolicyGrid(pol,V,elId)}
+
+/* ═══════════════════════════════════════════════════════════
+   POLICY ITERATION
+═══════════════════════════════════════════════════════════ */
+function policyEval(policy,gamma=.9,theta=1e-5){
+  const gc=gridConfig;
+  const V=Array.from({length:gc.rows},()=>Array(gc.cols).fill(0));
+  for(const key in gc.terminals){const[tr,tc]=key.split(',').map(Number);V[tr][tc]=gc.terminals[key];}
+  for(let iter=0;iter<500;iter++){
+    let delta=0;
+    for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+      if(isTerminal(r,c)||isWall(r,c))continue;
+      const a=policy[`${r},${c}`]||'RIGHT';
+      let vn=0;
+      for(const[prob,nr,nc,rew] of getTrans(r,c,a)) vn+=prob*(rew+gamma*V[nr][nc]);
+      delta=Math.max(delta,Math.abs(vn-V[r][c]));
+      V[r][c]=vn;
+    }
+    if(delta<theta)break;
+  }
+  return V;
+}
+
+function policyImprove(V,gamma=.9){
+  const gc=gridConfig;
+  const pol={};
+  for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+    if(isTerminal(r,c)||isWall(r,c))continue;
+    let best='RIGHT',bestQ=-Infinity;
+    for(const a of ACTIONS){
+      let q=0;
+      for(const[prob,nr,nc,rew] of getTrans(r,c,a)) q+=prob*(rew+gamma*V[nr][nc]);
+      if(q>bestQ){bestQ=q;best=a}
+    }
+    pol[`${r},${c}`]=best;
+  }
+  return pol;
+}
+
+function runPolicyIteration(gamma=.9){
+  const gc=gridConfig;
+  let policy={};
+  for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+    if(!isTerminal(r,c)&&!isWall(r,c)) policy[`${r},${c}`]='RIGHT';
+  }
+  const snaps=[];
+  for(let iter=0;iter<30;iter++){
+    const V=policyEval(policy,gamma);
+    const newPol=policyImprove(V,gamma);
+    const changed=Object.keys(newPol).some(k=>newPol[k]!==policy[k]);
+    snaps.push({iter:iter+1,changed,policy:{...newPol},V});
+    policy=newPol;
+    if(!changed)break;
+  }
+  return snaps;
+}
+
+// PI state
+let piState={snaps:[],idx:0};
+
+function piGetSnaps(){
+  if(!piState.snaps.length){
+    const gamma=parseInt(document.getElementById('pi-gamma').value)/100;
+    piState.snaps=runPolicyIteration(gamma);
+  }
+  return piState.snaps;
+}
+
+function piExplainText(snap, prevSnap, snapIdx, total){
+  const changed=snap.changed;
+  let changedCells=0, changedList=[];
+  if(prevSnap){
+    for(const k in snap.policy){
+      if(snap.policy[k]!==prevSnap.policy[k]){changedCells++;changedList.push(k)}
+    }
+  }
+  const isFirst=snapIdx===0;
+  const isLast=!changed;
+
+  let lines=[];
+
+  // Phase explanation
+  lines.push(`<b>Step 1 — Policy Evaluation:</b> Fixed the current policy and solved the Bellman expectation equations to convergence. This gives us V<sup>π</sup>(s): the exact value of every state under this policy.`);
+  lines.push(`<b>Step 2 — Policy Improvement:</b> For each state, we checked: is there a better action than what π currently does? We replaced each action with the greedy choice w.r.t. V<sup>π</sup>.`);
+
+  if(isFirst){
+    lines.push(`Starting policy: all cells set to <b>RIGHT</b>. After evaluation, this policy turned out to be very suboptimal — it loops and rarely reaches the Goal.`);
+    if(changedCells>0) lines.push(`Improvement found <b>${changedCells} better actions</b> across the grid. Policy changed significantly.`);
+  } else if(changed){
+    lines.push(`Policy still improving — <b>${changedCells} cell(s) changed</b> their action: ${changedList.slice(0,4).map(k=>`(${k})`).join(', ')}${changedList.length>4?' …':''}.`);
+  }
+
+  if(isLast){
+    lines.push(`✅ <b>CONVERGED after ${total} iteration(s)</b> — no cell changed its action. This proves we have found the optimal policy π*!`);
+    lines.push(`Both VI and PI converge to the exact same π*. PI needed only ${total} outer loop(s); VI needed more sweeps.`);
+  }
+
+  const[sr,sc]=gridConfig.start;
+  const posT=Object.entries(gridConfig.terminals).filter(([,v])=>v>0);
+  const negT=Object.entries(gridConfig.terminals).filter(([,v])=>v<0);
+  let vStr=`V<sup>π</sup>(start)=${snap.V[sr][sc].toFixed(3)}`;
+  for(const[k] of posT) vStr+=` · V<sup>π</sup>(goal@${k})=${snap.V[k.split(',')[0]][k.split(',')[1]].toFixed(1)}`;
+  for(const[k] of negT) vStr+=` · V<sup>π</sup>(penalty@${k})=${snap.V[k.split(',')[0]][k.split(',')[1]].toFixed(1)}`;
+  lines.push(`<span style="color:var(--muted)">${vStr}</span>`);
+  return lines.join('<br>');
+}
+
+function piUpdateButtons(){
+  document.getElementById('pi-back-btn').disabled=piState.idx<=0;
+  document.getElementById('pi-next-btn').disabled=piState.idx>=piGetSnaps().length;
+}
+
+function piApplyAt(idx){
+  const snaps=piGetSnaps();
+  if(idx<0||idx>=snaps.length) return;
+  const snap=snaps[idx];
+  const prevSnap=idx>0?snaps[idx-1]:null;
+  const total=snaps.length;
+
+  // Count changed cells
+  let changedCells=0;
+  if(prevSnap){for(const k in snap.policy)if(snap.policy[k]!==prevSnap.policy[k])changedCells++;}
+  else{
+    // iter 1: count cells different from all-RIGHT start
+    for(const k in snap.policy)if(snap.policy[k]!=='RIGHT')changedCells++;
+  }
+
+  const[sr,sc]=gridConfig.start;
+  document.getElementById('pi-iter-num').textContent=snap.iter;
+  document.getElementById('pi-changed').textContent=snap.changed?changedCells:'0';
+  document.getElementById('pi-vstart').textContent=snap.V[sr][sc].toFixed(3);
+  document.getElementById('pi-status').textContent=snap.changed?'Improving':'✅ Optimal';
+  if(!snap.changed){
+    document.getElementById('pi-outer-iters').textContent=total;
+    document.getElementById('pi-vstar').textContent=snap.V[sr][sc].toFixed(2);
+  }
+
+  renderPolicyGrid2(snap.policy,snap.V,'pi-policy-grid');
+  if(window._ch4UpdatePolicy) window._ch4UpdatePolicy(snap.policy);
+
+  // Log
+  const logEl=document.getElementById('pi-iter-log');
+  logEl.innerHTML=snaps.slice(0,idx+1).map(s=>{
+    const cls=s.changed?'pi-changed':'pi-stable';
+    return `<span class="${cls}">Iter ${s.iter}: ${s.changed?'policy improved — still updating':'STABLE → π* found ✓'}</span>`;
+  }).join('<br>');
+  logEl.scrollTop=logEl.scrollHeight;
+
+}
+
+function piReset(){
+  piState.snaps=[];piState.idx=0;
+  document.getElementById('pi-iter-num').textContent='—';
+  document.getElementById('pi-changed').textContent='—';
+  document.getElementById('pi-vstart').textContent='—';
+  document.getElementById('pi-status').textContent='—';
+  document.getElementById('pi-iter-log').textContent='Press "Next →" to step through iterations…';
+  const gc=gridConfig;
+  const initPol={};
+  for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){if(!isTerminal(r,c)&&!isWall(r,c))initPol[`${r},${c}`]='RIGHT'}
+  renderPolicyGrid2(initPol,null,'pi-policy-grid');
+  if(window._ch4UpdatePolicy) window._ch4UpdatePolicy(initPol);
+  piUpdateButtons();
+}
+
+function piNext(){
+  const snaps=piGetSnaps();
+  if(piState.idx<snaps.length){
+    piApplyAt(piState.idx);
+    piState.idx++;
+  }
+  piUpdateButtons();
+}
+
+function piBack(){
+  if(piState.idx>1){
+    piState.idx--;
+    piApplyAt(piState.idx-1);
+  } else if(piState.idx===1){
+    piState.idx=0;
+    piReset();
+    return;
+  }
+  piUpdateButtons();
+}
+
+async function piRunAll(){
+  const snaps=piGetSnaps();
+  while(piState.idx<snaps.length){
+    piApplyAt(piState.idx);
+    piState.idx++;
+    piUpdateButtons();
+    await new Promise(res=>setTimeout(res,500));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RUN POLICY ON 3D GRID
+═══════════════════════════════════════════════════════════ */
+async function viRunPolicy(){
+  if(!viState.snaps.length){alert('Step through Value Iteration first, then run the policy.');return;}
+  if(!window._ch3MoveAgent){alert('3D scene not ready — visit the Value Iteration tab first.');return;}
+  const gamma=viState.lastGamma||.9;
+  const pol=extractPolicy(viState.snaps[viState.snaps.length-1].V,gamma);
+  const[sr,sc]=gridConfig.start;
+  window._ch3MoveAgent(sr,sc,false);
+  let r=sr,c=sc;
+  for(let step=0;step<60;step++){
+    await new Promise(res=>setTimeout(res,480));
+    if(isTerminal(r,c))break;
+    const action=pol[`${r},${c}`]||'RIGHT';
+    const[,nr,nc,,done]=sampleTrans(r,c,action);
+    window._ch3MoveAgent(nr,nc,done);
+    r=nr;c=nc;
+    if(done)break;
+  }
+}
+
+async function piRunPolicy(){
+  const snaps=piGetSnaps();
+  if(!snaps.length)return;
+  if(!window._ch4MoveAgent){alert('3D scene not ready — visit the Policy Iteration tab first.');return;}
+  const pol=snaps[snaps.length-1].policy;
+  const[sr,sc]=gridConfig.start;
+  window._ch4MoveAgent(sr,sc,false);
+  let r=sr,c=sc;
+  for(let step=0;step<60;step++){
+    await new Promise(res=>setTimeout(res,480));
+    if(isTerminal(r,c))break;
+    const action=pol[`${r},${c}`]||'RIGHT';
+    const[,nr,nc,,done]=sampleTrans(r,c,action);
+    window._ch4MoveAgent(nr,nc,done);
+    r=nr;c=nc;
+    if(done)break;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INIT COMPARISON TABLE ON LOAD
+═══════════════════════════════════════════════════════════ */
+window.addEventListener('load',()=>{
+  // Pre-compute for comparison table (quiet, no UI side-effects)
+  const gc=gridConfig;
+  const[sr,sc]=gc.start;
+  const viRes=valueIteration(.9);
+  document.getElementById('vi-outer-iters').textContent=viRes.snaps.length;
+  document.getElementById('vi-vstar').textContent=viRes.V[sr][sc].toFixed(2);
+  const piRes=runPolicyIteration(.9);
+  document.getElementById('pi-outer-iters').textContent=piRes.length;
+  document.getElementById('pi-vstar').textContent=piRes[piRes.length-1].V[sr][sc].toFixed(2);
+  // Store snaps for PI so piGetSnaps() can reuse them
+  piState.snaps=piRes;
+  // Init VI empty policy grid
+  renderPolicyGrid({},null,'vi-policy-grid');
+  // Init PI policy grid to default (all RIGHT)
+  const initPol={};
+  for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){if(!isTerminal(r,c)&&!isWall(r,c))initPol[`${r},${c}`]='RIGHT'}
+  renderPolicyGrid2(initPol,null,'pi-policy-grid');
+  piUpdateButtons();
+  viUpdateButtons();
+});
+</script>
+
+<!-- Three.js module script -->
+<script>
+// Three.js + THREE.OrbitControls are loaded as global scripts in <head> — no import needed
+(function(){
+'use strict';
+
+// ── Layout helpers ──
+function calcLayout(gc){
+  const CELL=Math.min(1.15,4.6/Math.max(gc.rows,gc.cols));
+  const OFF_C=-(gc.cols-1)*CELL/2;
+  const OFF_R=-(gc.rows-1)*CELL/2;
+  return{CELL,OFF_C,OFF_R};
+}
+
+function cellColorGC(r,c,gc){
+  if(r===gc.start[0]&&c===gc.start[1])return 0x1e4a9c;
+  const key=`${r},${c}`;
+  if(key in gc.terminals)return gc.terminals[key]>0?0x0d6e50:0x7c1515;
+  if(gc.walls.has(key))return 0x0a0a15;
+  return 0x1a1b2f;
+}
+function cellEmissiveGC(r,c,gc){
+  if(r===gc.start[0]&&c===gc.start[1])return 0x152d60;
+  const key=`${r},${c}`;
+  if(key in gc.terminals)return gc.terminals[key]>0?0x073d28:0x400808;
+  if(gc.walls.has(key))return 0x000000;
+  return 0x06060f;
+}
+function valToHex(v,gc){
+  const vals=Object.values(gc.terminals);
+  const minV=Math.min(-10,...vals,-1);
+  const maxV=Math.max(10,...vals,1);
+  const t=Math.max(0,Math.min(1,(v-minV)/(maxV-minV)));
+  let r_,g_,b_;
+  if(t<0.5){const s=t*2;r_=Math.round(180*(1-s)+40*s);g_=Math.round(30*(1-s)+40*s);b_=Math.round(30*(1-s)+60*s)}
+  else{const s=(t-0.5)*2;r_=Math.round(40*(1-s)+10*s);g_=Math.round(40*(1-s)+170*s);b_=Math.round(60*(1-s)+80*s)}
+  return(r_<<16)|(g_<<8)|b_;
+}
+function valToHeight(v,gc){
+  const vals=Object.values(gc.terminals);
+  const minV=Math.min(-10,...vals,-1);
+  const maxV=Math.max(10,...vals,1);
+  const t=Math.max(0,Math.min(1,(v-minV)/(maxV-minV)));
+  return Math.max(0.06,t*1.4+0.06);
+}
+
+function showLoadError(loadingEl,msg='WebGL or network error'){
+  loadingEl.innerHTML=`<span style="color:#ff6b6b;text-align:center;padding:10px">⚠ 3D scene failed to load<br><span style="font-size:.65rem;color:#7b7fa0">${msg}</span></span>`;
+}
+
+/* ── Ch2 — Grid World ── */
+function initCh2(){
+  const canvas=document.getElementById('ch2-canvas');
+  const loading=document.getElementById('ch2-loading');
+  if(canvas.parentElement.clientWidth===0){setTimeout(initCh2,80);return;}
+  // Stop previous renderer if any
+  if(window._ch2Dispose){window._ch2Dispose();window._ch2Dispose=null;}
+  window._ch2MoveAgent=null;
+  loading.style.display='flex';loading.style.opacity='1';
+  loading.innerHTML='⟳ Loading 3D scene…';
+  try{
+    const gc=gridConfig;
+    const{CELL,OFF_C,OFF_R}=calcLayout(gc);
+    const W=Math.max(canvas.parentElement.clientWidth,200),H=340;
+    canvas.width=W;canvas.height=H;
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+    renderer.setSize(W,H);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    renderer.shadowMap.enabled=true;
+    const scene=new THREE.Scene();
+    const dist=Math.max(gc.rows,gc.cols)*CELL*1.35+2.2;
+    const camera=new THREE.PerspectiveCamera(50,W/H,.1,100);
+    camera.position.set(0,dist*.9,dist);camera.lookAt(0,.2,0);
+    const ambient=new THREE.AmbientLight(0x334466,.8);scene.add(ambient);
+    const dirLight=new THREE.DirectionalLight(0xffffff,.9);
+    dirLight.position.set(3,6,4);dirLight.castShadow=true;scene.add(dirLight);
+    const fillLight=new THREE.PointLight(0x4488ff,.4,20);
+    fillLight.position.set(-2,3,0);scene.add(fillLight);
+    // Grid tiles
+    for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+      const geo=new THREE.BoxGeometry(CELL*.87,.18,CELL*.87);
+      const mat=new THREE.MeshStandardMaterial({color:cellColorGC(r,c,gc),emissive:cellEmissiveGC(r,c,gc),emissiveIntensity:1,roughness:.6,metalness:.15});
+      const mesh=new THREE.Mesh(geo,mat);
+      mesh.receiveShadow=true;mesh.castShadow=true;
+      mesh.position.set(OFF_C+c*CELL,.09,OFF_R+r*CELL);
+      scene.add(mesh);
+      const key=`${r},${c}`;
+      if(key in gc.terminals){
+        const col=gc.terminals[key]>0?0x00d4aa:0xff6b6b;
+        const gl=new THREE.PointLight(col,.8,CELL*1.4);
+        gl.position.set(OFF_C+c*CELL,.5,OFF_R+r*CELL);scene.add(gl);
+      }
+      if(r===gc.start[0]&&c===gc.start[1]){
+        const gl=new THREE.PointLight(0x4f8ef7,.5,CELL*1.4);
+        gl.position.set(OFF_C+c*CELL,.5,OFF_R+r*CELL);scene.add(gl);
+      }
+    }
+    // Agent sphere
+    const agentMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0x6699ff,emissiveIntensity:1.2,roughness:.2,metalness:.1});
+    const agentR=Math.min(0.22,CELL*.2);
+    const agent=new THREE.Mesh(new THREE.SphereGeometry(agentR,20,20),agentMat);
+    const[sr,sc]=gc.start;
+    agent.position.set(OFF_C+sc*CELL,.5,OFF_R+sr*CELL);agent.castShadow=true;scene.add(agent);
+    const agentLight=new THREE.PointLight(0x8899ff,.7,1.4);agentLight.position.copy(agent.position);scene.add(agentLight);
+    const controls=new THREE.OrbitControls(camera,renderer.domElement);
+    controls.enableDamping=true;controls.dampingFactor=.05;controls.minDistance=2;controls.maxDistance=20;
+    controls.maxPolarAngle=Math.PI*.55;controls.target.set(0,0,0);controls.update();
+    const agentTarget=agent.position.clone();
+    window._ch2MoveAgent=function(r,c,isEnd){
+      agentTarget.set(OFF_C+c*CELL,.5,OFF_R+r*CELL);
+      const key=`${r},${c}`;
+      const isPos=isEnd&&(gridConfig.terminals[key]||0)>0;
+      const isNeg=isEnd&&(gridConfig.terminals[key]||0)<0;
+      agentMat.emissive.setHex(isPos?0x00ffaa:isNeg?0xff3333:0x6699ff);
+    };
+    let t=0,running=true;
+    window._ch2Dispose=function(){running=false;renderer.dispose();};
+    (function animate(){
+      if(!running)return;
+      requestAnimationFrame(animate);t+=.016;
+      agent.position.lerp(agentTarget,.12);
+      agent.position.y=agentTarget.y+Math.sin(t*2)*.05;
+      agentLight.position.copy(agent.position);
+      controls.update();renderer.render(scene,camera);
+    })();
+    window.addEventListener('resize',()=>{
+      if(!running)return;
+      const nW=Math.max(canvas.parentElement.clientWidth,200);
+      renderer.setSize(nW,H);camera.aspect=nW/H;camera.updateProjectionMatrix();
+    });
+    loading.style.opacity='0';setTimeout(()=>loading.style.display='none',400);
+  }catch(e){showLoadError(loading,e.message||String(e))}
+}
+
+/* ── Ch3 — Value Iteration ── */
+function initCh3(){
+  const canvas=document.getElementById('ch3-canvas');
+  const loading=document.getElementById('ch3-loading');
+  if(canvas.parentElement.clientWidth===0){setTimeout(initCh3,80);return;}
+  if(window._ch3Dispose){window._ch3Dispose();window._ch3Dispose=null;}
+  window._ch3UpdateValues=null;window._ch3UpdatePolicy=null;
+  loading.style.display='flex';loading.style.opacity='1';
+  loading.innerHTML='⟳ Loading 3D scene…';
+  try{
+    const gc=gridConfig;
+    const{CELL,OFF_C,OFF_R}=calcLayout(gc);
+    const W=Math.max(canvas.parentElement.clientWidth,200),H=320;
+    canvas.width=W;canvas.height=H;
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+    renderer.setSize(W,H);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    renderer.shadowMap.enabled=true;
+    const scene=new THREE.Scene();
+    const dist=Math.max(gc.rows,gc.cols)*CELL*1.35+2.2;
+    const camera=new THREE.PerspectiveCamera(50,W/H,.1,100);
+    camera.position.set(0,dist,dist*.95);camera.lookAt(0,0,0);
+    const ambient=new THREE.AmbientLight(0x223355,.7);scene.add(ambient);
+    const dir=new THREE.DirectionalLight(0xffffff,.85);dir.position.set(4,7,5);dir.castShadow=true;scene.add(dir);
+    const tiles={},tileTargetH={},tileCurH={};
+    const ch3TermRings={};  // glowing rings on goal/hole
+    for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+      const key=`${r},${c}`;const initH=0.12;
+      const geo=new THREE.BoxGeometry(CELL*.87,1.0,CELL*.87);
+      let matColor=0x1a1b2f,matEmissive=0x06060f,matEmissInt=1,matRough=.55,matMetal=.15;
+      if(isWall(r,c)){matColor=0x2a2a40;matEmissive=0x111128;}
+      else if(isTerminal(r,c)){
+        const isPos=gc.terminals[key]>0;
+        matColor=isPos?0x00d4aa:0xff6b6b;
+        matEmissive=isPos?0x007755:0x991122;
+        matEmissInt=1.6;matRough=.35;matMetal=.2;
+      }
+      const mat=new THREE.MeshStandardMaterial({color:matColor,emissive:matEmissive,emissiveIntensity:matEmissInt,roughness:matRough,metalness:matMetal});
+      const mesh=new THREE.Mesh(geo,mat);
+      mesh.receiveShadow=true;mesh.castShadow=true;
+      mesh.scale.y=initH;mesh.position.set(OFF_C+c*CELL,initH/2,OFF_R+r*CELL);
+      scene.add(mesh);tiles[key]=mesh;tileTargetH[key]=initH;tileCurH[key]=initH;
+      if(key in gc.terminals){
+        const isPos=gc.terminals[key]>0;
+        const col=isPos?0x00d4aa:0xff6b6b;
+        const gl=new THREE.PointLight(col,isPos?.9:1.1,CELL*2.2);
+        gl.position.set(OFF_C+c*CELL,1.8,OFF_R+r*CELL);scene.add(gl);
+        // Glowing ring on top
+        const ringR=CELL*.38,ringT=CELL*.045;
+        const ringGeo=new THREE.TorusGeometry(ringR,ringT,12,40);
+        const ringMat=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:2.5,roughness:.2,metalness:.3});
+        const ring=new THREE.Mesh(ringGeo,ringMat);
+        ring.rotation.x=Math.PI/2;  // lie flat
+        ring.position.set(OFF_C+c*CELL,initH+0.06,OFF_R+r*CELL);
+        scene.add(ring);ch3TermRings[key]=ring;
+      }
+    }
+    const baseW=gc.cols*CELL+0.6,baseD=gc.rows*CELL+0.6;
+    const base=new THREE.Mesh(new THREE.BoxGeometry(baseW,.04,baseD),new THREE.MeshStandardMaterial({color:0x0a0a14,roughness:.9,metalness:.05}));
+    base.position.set(0,-.03,0);base.receiveShadow=true;scene.add(base);
+    const controls=new THREE.OrbitControls(camera,renderer.domElement);
+    controls.enableDamping=true;controls.dampingFactor=.05;controls.minDistance=2;controls.maxDistance=24;
+    controls.maxPolarAngle=Math.PI*.52;controls.target.set(0,0,0);controls.update();
+    window._ch3UpdateValues=function(V){
+      const g=gridConfig;
+      for(let r=0;r<g.rows;r++) for(let c=0;c<g.cols;c++){
+        const key=`${r},${c}`;if(!tiles[key])continue;
+        const v=V[r]&&V[r][c]!==undefined?V[r][c]:0;
+        tileTargetH[key]=valToHeight(v,g);
+        // Terminal tiles keep their fixed highlight color; only recolor non-terminals
+        if(!isTerminal(r,c)&&!isWall(r,c)){
+          tiles[key].material.color.setHex(valToHex(v,g));
+          tiles[key].material.emissive.setHex(valToHex(v,g));
+          tiles[key].material.emissiveIntensity=.25;
+        }
+      }
+    };
+    // Policy cones — one per non-terminal, non-wall cell
+    const ch3Cones={};
+    for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+      if(isTerminal(r,c)||isWall(r,c))continue;
+      const coneR=Math.min(.13,CELL*.12);
+      const geo=new THREE.ConeGeometry(coneR,coneR*2.2,8);
+      const mat=new THREE.MeshStandardMaterial({color:0x4f8ef7,emissive:0x1a3a80,emissiveIntensity:1,roughness:.4});
+      const mesh=new THREE.Mesh(geo,mat);
+      const initH=tileCurH[`${r},${c}`]||0.12;
+      mesh.position.set(OFF_C+c*CELL,initH+0.18,OFF_R+r*CELL);
+      const[rx,ry,rz]=ARROW_ROT.RIGHT;mesh.rotation.set(rx,ry,rz);
+      scene.add(mesh);ch3Cones[`${r},${c}`]=mesh;
+    }
+    window._ch3UpdatePolicy=function(policy){
+      const colors={UP:0x4f8ef7,DOWN:0x00d4aa,LEFT:0xff6b6b,RIGHT:0xb06eff};
+      for(const key in ch3Cones){
+        const a=policy[key]||'RIGHT';
+        const[rx,ry,rz]=ARROW_ROT[a];ch3Cones[key].rotation.set(rx,ry,rz);
+        ch3Cones[key].material.color.setHex(colors[a]);
+      }
+    };
+    // Agent sphere for policy playback
+    const agMat3=new THREE.MeshStandardMaterial({color:0xffd43b,emissive:0xffa000,emissiveIntensity:1.3,roughness:.2,metalness:.1});
+    const agR3=Math.min(0.2,CELL*.18);
+    const agent3=new THREE.Mesh(new THREE.SphereGeometry(agR3,20,20),agMat3);
+    const[asr3,asc3]=gc.start;
+    agent3.position.set(OFF_C+asc3*CELL,.7,OFF_R+asr3*CELL);
+    agent3.visible=false;agent3.castShadow=true;scene.add(agent3);
+    const agLight3=new THREE.PointLight(0xffd43b,.9,1.6);agLight3.position.copy(agent3.position);scene.add(agLight3);
+    const agTarget3=agent3.position.clone();
+    let agentGridPos3=[asr3,asc3];
+    let t3=0;
+    window._ch3MoveAgent=function(r,c,isEnd){
+      agent3.visible=true;
+      agentGridPos3=[r,c];
+      const h=tileCurH[`${r},${c}`]||0.12;
+      agTarget3.set(OFF_C+c*CELL,h+agR3+0.08,OFF_R+r*CELL);
+      const key=`${r},${c}`;
+      const isPos=isEnd&&(gridConfig.terminals[key]||0)>0;
+      const isNeg=isEnd&&(gridConfig.terminals[key]||0)<0;
+      agMat3.emissive.setHex(isPos?0x00ffaa:isNeg?0xff3333:0xffa000);
+    };
+    let running=true;
+    window._ch3Dispose=function(){running=false;window._ch3MoveAgent=null;window._ch3UpdatePolicy=null;renderer.dispose();};
+    (function animate(){
+      if(!running)return;
+      requestAnimationFrame(animate);
+      t3+=.016;
+      for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+        const key=`${r},${c}`;const mesh=tiles[key];if(!mesh)continue;
+        tileCurH[key]+=(tileTargetH[key]-tileCurH[key])*.07;
+        const h=tileCurH[key];mesh.scale.y=h;mesh.position.y=h/2;
+        // Lift cones and rings to sit on top of tile
+        if(ch3Cones[key]) ch3Cones[key].position.y=h+0.18;
+        if(ch3TermRings[key]) ch3TermRings[key].position.y=h+0.06;
+      }
+      // Pulse terminal rings
+      for(const key in ch3TermRings){
+        ch3TermRings[key].material.emissiveIntensity=2.0+Math.sin(t3*2.5)*0.7;
+      }
+      if(agent3.visible){
+        // Keep agent y tracking its tile's current height
+        const[agr,agc]=agentGridPos3;
+        const agH=tileCurH[`${agr},${agc}`]||0.12;
+        agTarget3.y=agH+agR3+0.08;
+        agent3.position.lerp(agTarget3,.12);
+        agent3.position.y+=Math.sin(t3*2)*.03;
+        agLight3.position.copy(agent3.position);
+      }
+      controls.update();renderer.render(scene,camera);
+    })();
+    window.addEventListener('resize',()=>{
+      if(!running)return;
+      const nW=Math.max(canvas.parentElement.clientWidth,200);
+      renderer.setSize(nW,H);camera.aspect=nW/H;camera.updateProjectionMatrix();
+    });
+    loading.style.opacity='0';setTimeout(()=>loading.style.display='none',400);
+  }catch(e){showLoadError(loading,e.message||String(e))}
+}
+
+/* ── Ch4 — Policy Iteration ── */
+const ARROW_ROT={UP:[-Math.PI/2,0,0],DOWN:[Math.PI/2,0,0],LEFT:[0,0,Math.PI/2],RIGHT:[0,0,-Math.PI/2]};
+
+function initCh4(){
+  const canvas=document.getElementById('ch4-canvas');
+  const loading=document.getElementById('ch4-loading');
+  if(canvas.parentElement.clientWidth===0){setTimeout(initCh4,80);return;}
+  if(window._ch4Dispose){window._ch4Dispose();window._ch4Dispose=null;}
+  window._ch4UpdatePolicy=null;
+  loading.style.display='flex';loading.style.opacity='1';
+  loading.innerHTML='⟳ Loading 3D scene…';
+  try{
+    const gc=gridConfig;
+    const{CELL,OFF_C,OFF_R}=calcLayout(gc);
+    const W=Math.max(canvas.parentElement.clientWidth,200),H=320;
+    canvas.width=W;canvas.height=H;
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+    renderer.setSize(W,H);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    const scene=new THREE.Scene();
+    const dist=Math.max(gc.rows,gc.cols)*CELL*1.35+2.2;
+    const camera=new THREE.PerspectiveCamera(50,W/H,.1,100);
+    camera.position.set(0,dist,dist*.95);camera.lookAt(0,0,0);
+    const ambient=new THREE.AmbientLight(0x334466,.8);scene.add(ambient);
+    const dir=new THREE.DirectionalLight(0xffffff,.85);dir.position.set(3,6,4);scene.add(dir);
+    for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+      const geo=new THREE.BoxGeometry(CELL*.87,.12,CELL*.87);
+      const mat=new THREE.MeshStandardMaterial({color:cellColorGC(r,c,gc),emissive:cellEmissiveGC(r,c,gc),emissiveIntensity:1,roughness:.6,metalness:.1});
+      const mesh=new THREE.Mesh(geo,mat);
+      mesh.position.set(OFF_C+c*CELL,.06,OFF_R+r*CELL);scene.add(mesh);
+      const key=`${r},${c}`;
+      if(key in gc.terminals){
+        const col=gc.terminals[key]>0?0x00d4aa:0xff6b6b;
+        const gl=new THREE.PointLight(col,.7,CELL*1.4);
+        gl.position.set(OFF_C+c*CELL,.5,OFF_R+r*CELL);scene.add(gl);
+      }
+    }
+    const baseW=gc.cols*CELL+0.6,baseD=gc.rows*CELL+0.6;
+    const base=new THREE.Mesh(new THREE.BoxGeometry(baseW,.04,baseD),new THREE.MeshStandardMaterial({color:0x0a0a14,roughness:.9}));
+    base.position.set(0,-.03,0);scene.add(base);
+    const cones={};
+    for(let r=0;r<gc.rows;r++) for(let c=0;c<gc.cols;c++){
+      if(isTerminal(r,c)||isWall(r,c))continue;
+      const coneR=Math.min(.13,CELL*.12);
+      const geo=new THREE.ConeGeometry(coneR,coneR*2.2,8);
+      const mat=new THREE.MeshStandardMaterial({color:0x4f8ef7,emissive:0x1a3a80,emissiveIntensity:1,roughness:.4});
+      const mesh=new THREE.Mesh(geo,mat);
+      mesh.position.set(OFF_C+c*CELL,.38,OFF_R+r*CELL);
+      const[rx,ry,rz]=ARROW_ROT.RIGHT;mesh.rotation.set(rx,ry,rz);
+      scene.add(mesh);cones[`${r},${c}`]=mesh;
+    }
+    const controls=new THREE.OrbitControls(camera,renderer.domElement);
+    controls.enableDamping=true;controls.dampingFactor=.05;controls.minDistance=2;controls.maxDistance=20;
+    controls.maxPolarAngle=Math.PI*.55;controls.target.set(0,0,0);controls.update();
+    window._ch4UpdatePolicy=function(policy){
+      for(const key in cones){
+        const a=policy[key]||'RIGHT';
+        const[rx,ry,rz]=ARROW_ROT[a];cones[key].rotation.set(rx,ry,rz);
+        const colors={UP:0x4f8ef7,DOWN:0x00d4aa,LEFT:0xff6b6b,RIGHT:0xb06eff};
+        cones[key].material.color.setHex(colors[a]);
+      }
+    };
+    // Agent sphere for policy playback
+    const agMat4=new THREE.MeshStandardMaterial({color:0x00d4aa,emissive:0x009977,emissiveIntensity:1.3,roughness:.2,metalness:.1});
+    const agR4=Math.min(0.2,CELL*.18);
+    const agent4=new THREE.Mesh(new THREE.SphereGeometry(agR4,20,20),agMat4);
+    const[asr4,asc4]=gc.start;
+    agent4.position.set(OFF_C+asc4*CELL,.5,OFF_R+asr4*CELL);
+    agent4.visible=false;agent4.castShadow=true;scene.add(agent4);
+    const agLight4=new THREE.PointLight(0x00d4aa,.9,1.6);agLight4.position.copy(agent4.position);scene.add(agLight4);
+    const agTarget4=agent4.position.clone();
+    window._ch4MoveAgent=function(r,c,isEnd){
+      agent4.visible=true;
+      agTarget4.set(OFF_C+c*CELL,.5,OFF_R+r*CELL);
+      const key=`${r},${c}`;
+      const isPos=isEnd&&(gridConfig.terminals[key]||0)>0;
+      const isNeg=isEnd&&(gridConfig.terminals[key]||0)<0;
+      agMat4.emissive.setHex(isPos?0x00ffaa:isNeg?0xff3333:0x009977);
+    };
+    let running=true;
+    window._ch4Dispose=function(){running=false;window._ch4MoveAgent=null;renderer.dispose();};
+    let t4=0;
+    (function animate(){
+      if(!running)return;
+      requestAnimationFrame(animate);t4+=.016;
+      if(agent4.visible){
+        agent4.position.lerp(agTarget4,.12);
+        agent4.position.y=agTarget4.y+Math.sin(t4*2)*.04;
+        agLight4.position.copy(agent4.position);
+      }
+      controls.update();renderer.render(scene,camera);
+    })();
+    window.addEventListener('resize',()=>{
+      if(!running)return;
+      const nW=Math.max(canvas.parentElement.clientWidth,200);
+      renderer.setSize(nW,H);camera.aspect=nW/H;camera.updateProjectionMatrix();
+    });
+    loading.style.opacity='0';setTimeout(()=>loading.style.display='none',400);
+  }catch(e){showLoadError(loading,e.message||String(e))}
+}
+
+// Expose to global scope for lazy-init from regular script
+window._initCh2=initCh2;
+window._initCh3=initCh3;
+window._initCh4=initCh4;
+// Handle case where tab was clicked before this script ran
+if(window._pendingCh2){setTimeout(()=>{initCh2();window._pendingCh2=false},0)}
+if(window._pendingCh3){setTimeout(()=>{initCh3();window._pendingCh3=false},0)}
+if(window._pendingCh4){setTimeout(()=>{initCh4();window._pendingCh4=false},0)}
+})(); // end IIFE
+
+/* ═══════════════════════════════════════════════════════════
+   SANDBOX — Grid Designer
+═══════════════════════════════════════════════════════════ */
+
+// Temporarily swap gridConfig, run fn synchronously, then restore
+function withConfig(cfg,fn){
+  const prev=gridConfig;
+  gridConfig=cfg;
+  try{return fn();}finally{gridConfig=prev;}
+}
+
+// Sandbox state
+let sbMode='start';
+let sbAlgo='VI';
+let sbCells=[];
+let sbRows=4,sbCols=4;
+let sbChart=null;
+let sbResult=null;
+
+// Build a proper gridConfig from the current sb grid state
+function sbBuildConfig(){
+  const terminals={};
+  const walls=new Set();
+  let start=[0,0];
+  const stepCost=parseFloat(document.getElementById('sb-step-cost')?.value??'-1')||-1;
+
+  for(let r=0;r<sbRows;r++) for(let c=0;c<sbCols;c++){
+    const cell=sbCells[r]?.[c]||{type:'normal'};
+    if(cell.type==='start') start=[r,c];
+    else if(cell.type==='wall') walls.add(`${r},${c}`);
+    else if(cell.type==='goal'||cell.type==='hole'||cell.type==='reward')
+      terminals[`${r},${c}`]=cell.reward||0;
+  }
+
+  // Transition probabilities (normalize if needed)
+  const pi=parseInt(document.getElementById('sb-p-int')?.value||80);
+  const psl=parseInt(document.getElementById('sb-p-sl')?.value||10);
+  const psr=parseInt(document.getElementById('sb-p-sr')?.value||10);
+  const psum=pi+psl+psr||100;
+  const transProbs={intended:pi/psum,slipLeft:psl/psum,slipRight:psr/psum};
+
+  return{rows:sbRows,cols:sbCols,start,terminals,walls,transProbs,stepCost};
+}
+
+// Fill sbCells with default 4×4 layout
+function sbLoadDefault(){
+  sbRows=4;sbCols=4;
+  const rEl=document.getElementById('sb-rows');const cEl=document.getElementById('sb-cols');
+  if(rEl) rEl.value=4;if(cEl) cEl.value=4;
+  sbCells=Array.from({length:4},()=>Array.from({length:4},()=>({type:'normal'})));
+  sbCells[0][0]={type:'start'};
+  sbCells[3][3]={type:'goal',reward:10};
+  sbCells[2][3]={type:'hole',reward:-10};
+  sbCells[1][1]={type:'wall'};
+  sbRenderGrid();
+}
+
+function sbResetGrid(){
+  sbCells=Array.from({length:sbRows},(_,r)=>
+    Array.from({length:sbCols},(_,c)=>({type:r===0&&c===0?'start':'normal'})));
+  sbRenderGrid();
+}
+
+function sbResizeGrid(){
+  const nr=Math.min(8,Math.max(3,parseInt(document.getElementById('sb-rows')?.value)||4));
+  const nc=Math.min(8,Math.max(3,parseInt(document.getElementById('sb-cols')?.value)||4));
+  // Preserve existing cells where possible
+  const old=sbCells;
+  sbCells=Array.from({length:nr},(_,r)=>
+    Array.from({length:nc},(_,c)=>(old[r]&&old[r][c])?{...old[r][c]}:{type:'normal'}));
+  sbRows=nr;sbCols=nc;
+  // Ensure at least one start
+  const hasStart=sbCells.some(row=>row.some(cell=>cell.type==='start'));
+  if(!hasStart) sbCells[0][0]={type:'start'};
+  sbRenderGrid();
+}
+
+function sbSetMode(m){
+  sbMode=m;
+  document.querySelectorAll('.sb-mode-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('sbm-'+m);
+  if(btn) btn.classList.add('active');
+  const cr=document.getElementById('sb-custom-row');
+  if(cr) cr.style.display=m==='reward'?'flex':'none';
+}
+
+function sbSetAlgo(a){
+  sbAlgo=a;
+  document.getElementById('sb-algo-vi')?.classList.toggle('active',a==='VI');
+  document.getElementById('sb-algo-pi')?.classList.toggle('active',a==='PI');
+  const metricRow=document.getElementById('sb-metric-row');
+  if(metricRow) metricRow.style.display=a==='VI'?'':'none';
+}
+
+function sbGetMetric(){return document.getElementById('sb-metric')?.value||'max';}
+
+function sbUpdateProbs(){
+  const pi=parseInt(document.getElementById('sb-p-int')?.value||80);
+  const psl=parseInt(document.getElementById('sb-p-sl')?.value||10);
+  const psr=parseInt(document.getElementById('sb-p-sr')?.value||10);
+  const vI=document.getElementById('sb-p-int-val');
+  const vSL=document.getElementById('sb-p-sl-val');
+  const vSR=document.getElementById('sb-p-sr-val');
+  if(vI) vI.textContent=pi+'%';
+  if(vSL) vSL.textContent=psl+'%';
+  if(vSR) vSR.textContent=psr+'%';
+  const sum=pi+psl+psr;
+  const el=document.getElementById('sb-prob-sum');
+  if(el){
+    el.textContent='Sum: '+sum+'%'+(sum===100?' ✓':' ≠ 100 — will normalize on run');
+    el.className='sb-prob-sum '+(sum===100?'ok':'warn');
+  }
+}
+
+function sbProbPreset(i,sl,sr){
+  const iEl=document.getElementById('sb-p-int');
+  const slEl=document.getElementById('sb-p-sl');
+  const srEl=document.getElementById('sb-p-sr');
+  if(iEl) iEl.value=i;if(slEl) slEl.value=sl;if(srEl) srEl.value=sr;
+  sbUpdateProbs();
+}
+
+function sbCellClick(r,c,ev){
+  if(ev) ev.preventDefault();
+  const isRight=ev&&ev.button===2;
+  if(isRight){sbCells[r][c]={type:'normal'};sbRenderGrid();return;}
+  if(sbMode==='start'){
+    for(let rr=0;rr<sbRows;rr++) for(let cc=0;cc<sbCols;cc++)
+      if(sbCells[rr][cc].type==='start') sbCells[rr][cc]={type:'normal'};
+    sbCells[r][c]={type:'start'};
+  } else if(sbMode==='goal'){
+    sbCells[r][c]={type:'goal',reward:10};
+  } else if(sbMode==='hole'){
+    sbCells[r][c]={type:'hole',reward:-10};
+  } else if(sbMode==='reward'){
+    const rv=parseFloat(document.getElementById('sb-custom-reward')?.value||5);
+    sbCells[r][c]={type:'reward',reward:rv};
+  } else if(sbMode==='wall'){
+    sbCells[r][c]={type:'wall'};
+  } else {
+    sbCells[r][c]={type:'normal'};
+  }
+  sbRenderGrid();
+}
+
+function sbRenderGrid(){
+  const grid=document.getElementById('sb-grid');
+  if(!grid) return;
+  const maxDim=Math.max(sbRows,sbCols);
+  const cellSize=Math.max(42,Math.min(64,Math.floor(340/maxDim)));
+  grid.style.gridTemplateColumns=`repeat(${sbCols},${cellSize}px)`;
+  grid.innerHTML='';
+  for(let r=0;r<sbRows;r++) for(let c=0;c<sbCols;c++){
+    const cell=sbCells[r]?.[c]||{type:'normal'};
+    const div=document.createElement('div');
+    div.className='sb-cell type-'+cell.type;
+    div.style.width=cellSize+'px';
+    div.style.height=cellSize+'px';
+    div.style.fontSize=Math.max(10,cellSize*.17)+'px';
+
+    // Main label
+    const lbl=document.createElement('span');
+    lbl.style.fontWeight='700';lbl.style.lineHeight='1';
+
+    // Sub-label (reward value)
+    const sub=document.createElement('span');
+    sub.style.lineHeight='1';sub.style.fontWeight='400';
+    sub.style.fontSize='.65em';
+
+    if(cell.type==='start'){
+      lbl.textContent='S';lbl.style.color='var(--blue)';
+    } else if(cell.type==='wall'){
+      lbl.textContent='█';lbl.style.color='#4a4a7a';lbl.style.fontSize='1.1em';
+    } else if(cell.type==='goal'){
+      lbl.textContent='G';lbl.style.color='var(--teal)';
+      sub.textContent='+'+(cell.reward||10);sub.style.color='var(--teal)';
+    } else if(cell.type==='hole'){
+      lbl.textContent='H';lbl.style.color='var(--coral)';
+      sub.textContent=''+(cell.reward||-10);sub.style.color='var(--coral)';
+    } else if(cell.type==='reward'){
+      lbl.textContent='$';lbl.style.color='var(--gold)';
+      sub.textContent=''+(cell.reward||5);sub.style.color='var(--gold)';
+    } else {
+      lbl.textContent='·';lbl.style.color='rgba(255,255,255,.18)';
+    }
+
+    div.appendChild(lbl);
+    if(sub.textContent) div.appendChild(sub);
+    div.addEventListener('click',ev=>sbCellClick(r,c,ev));
+    div.addEventListener('contextmenu',ev=>sbCellClick(r,c,ev));
+    grid.appendChild(div);
+  }
+}
+
+function sbValidate(cfg){
+  if(Object.keys(cfg.terminals).length===0)
+    return 'Add at least one terminal state (Goal G, Hole H, or Custom $).';
+  let hasPositive=false;
+  for(const k in cfg.terminals) if(cfg.terminals[k]>0){hasPositive=true;break;}
+  if(!hasPositive) return 'Add at least one positive-reward terminal (Goal).';
+  let freeCount=0;
+  for(let r=0;r<cfg.rows;r++) for(let c=0;c<cfg.cols;c++)
+    if(!(`${r},${c}` in cfg.terminals)&&!cfg.walls.has(`${r},${c}`)) freeCount++;
+  if(freeCount===0) return 'Grid has no non-terminal, non-wall states to solve.';
+  return null;
+}
+
+async function sbRun(){
+  const cfg=sbBuildConfig();
+  const statusEl=document.getElementById('sb-status');
+
+  const err=sbValidate(cfg);
+  if(err){
+    statusEl.textContent='⚠ '+err;
+    statusEl.style.color='var(--coral)';
+    return;
+  }
+  statusEl.textContent='⟳ Running '+sbAlgo+'…';
+  statusEl.style.color='var(--muted)';
+  await new Promise(r=>requestAnimationFrame(r));
+
+  const gamma=parseInt(document.getElementById('sb-gamma')?.value||90)/100;
+
+  try{
+    let snaps,V,policy;
+
+    if(sbAlgo==='VI'){
+      const res=withConfig(cfg,()=>valueIteration(gamma,1e-6));
+      snaps=res.snaps;V=res.V;policy=res.policy;
+    } else {
+      // PI: runPolicyIteration returns snaps with {iter,changed,policy,V}
+      snaps=withConfig(cfg,()=>runPolicyIteration(gamma));
+      const last=snaps[snaps.length-1];
+      V=last.V;policy=last.policy;
+      // Compute delta between consecutive V arrays for the chart
+      for(let i=0;i<snaps.length;i++){
+        const vCur=snaps[i].V;
+        const vPrev=i>0?snaps[i-1].V:null;
+        let maxD=0;
+        if(vPrev){
+          for(let r=0;r<cfg.rows;r++) for(let c=0;c<cfg.cols;c++)
+            maxD=Math.max(maxD,Math.abs(vCur[r][c]-vPrev[r][c]));
+        }
+        snaps[i].delta=maxD;
+        snaps[i].metrics={max:maxD,mean:maxD,rms:maxD,sum:maxD,vstart:maxD};
+      }
+    }
+
+    sbResult={snaps,V,policy,cfg,gamma};
+    sbIdx=snaps.length-1;  // start at final (fully converged) state
+    sbPlaying=false;
+
+    document.getElementById('sb-res-algo').textContent=sbAlgo;
+    document.getElementById('sb-res-gamma').textContent=gamma.toFixed(2);
+    // Update metric label
+    const metaInit=VI_METRIC_META[sbGetMetric()]||VI_METRIC_META.max;
+    const metaLblEl=document.getElementById('sb-res-metric-lbl');
+    if(metaLblEl) metaLblEl.textContent=metaInit.label;
+
+    document.getElementById('sb-results').style.display='block';
+    document.getElementById('sb-eval-stats').style.display='none';
+    document.getElementById('sb-trace-wrap').style.display='none';
+
+    // Draw full chart, then highlight final position
+    sbRenderChart(snaps);
+    // Apply final snapshot to policy grid + stats
+    sbApplyAt(snaps.length-1);
+
+    statusEl.textContent='✓ Done — '+snaps.length+' iteration'+(snaps.length!==1?'s':'')+' · γ='+gamma.toFixed(2)+' · use ← → to step';
+    statusEl.style.color='var(--teal)';
+
+  }catch(e){
+    statusEl.textContent='Error: '+(e.message||String(e));
+    statusEl.style.color='var(--coral)';
+    console.error(e);
+  }
+}
+
+function sbRenderChart(snaps){
+  const canvas=document.getElementById('sb-conv-chart');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  if(sbChart){sbChart.destroy();sbChart=null;}
+  const m=sbGetMetric();
+  const meta=VI_METRIC_META[m]||VI_METRIC_META.max;
+  const chartData=snaps.map(s=>{
+    const v=s.metrics?s.metrics[m]:s.delta;
+    return(v>0)?v:null;  // logarithmic axis needs positive values
+  });
+  sbChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:snaps.map(s=>s.iter),
+      datasets:[{label:meta.label,data:chartData,
+        borderColor:meta.color,backgroundColor:meta.color+'14',
+        borderWidth:2,pointRadius:3,tension:.35}]
+    },
+    options:{responsive:true,animation:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:t=>'Iter '+t[0].label}}},
+      scales:{
+        x:{ticks:{color:'#7b7fa0',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'},
+           title:{display:true,text:'Iteration',color:'#7b7fa0',font:{size:9}}},
+        y:{ticks:{color:'#7b7fa0',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'},
+           type:'logarithmic',title:{display:true,text:meta.yLabel,color:'#7b7fa0',font:{size:9}}}
+      }
+    }
+  });
+  document.getElementById('sb-chart-title').textContent=
+    'Convergence ('+sbAlgo+') — '+meta.label;
+}
+
+function sbEvaluate(){
+  if(!sbResult) return;
+  const{policy,cfg}=sbResult;
+  const nEp=Math.min(2000,Math.max(10,parseInt(document.getElementById('sb-ep-count')?.value||200)));
+  const maxSteps=Math.min(500,Math.max(10,parseInt(document.getElementById('sb-ep-maxsteps')?.value||100)));
+
+  let wins=0,holes=0,timeouts=0,totalR=0,totalSteps=0;
+  let lastTrace=[];
+
+  for(let ep=0;ep<nEp;ep++){
+    const[sr,sc]=cfg.start;
+    let r=sr,c=sc,tot=0,steps=0;
+    const isLast=ep===nEp-1;
+    const trace=isLast?[`(${r},${c})`]:null;
+
+    for(let s=0;s<maxSteps;s++){
+      const key=`${r},${c}`;
+      const a=policy[key]||ACTIONS[0];
+      const[,nr,nc,rew,done]=withConfig(cfg,()=>sampleTrans(r,c,a));
+      tot+=rew;steps++;
+      if(trace) trace.push(`${ARROWS_MAP[a]||a}→(${nr},${nc}) r=${rew>=0?'+':''}${rew}`);
+      r=nr;c=nc;
+      if(done)break;
+    }
+
+    const finalKey=`${r},${c}`;
+    if(finalKey in cfg.terminals){
+      if(cfg.terminals[finalKey]>0) wins++;
+      else holes++;
+    } else timeouts++;
+
+    totalR+=tot;totalSteps+=steps;
+    if(isLast) lastTrace=trace||[];
+  }
+
+  document.getElementById('sb-ev-win').textContent=(wins/nEp*100).toFixed(1)+'%';
+  document.getElementById('sb-ev-hole').textContent=(holes/nEp*100).toFixed(1)+'%';
+  document.getElementById('sb-ev-timeout').textContent=(timeouts/nEp*100).toFixed(1)+'%';
+  document.getElementById('sb-ev-reward').textContent=(totalR/nEp).toFixed(2);
+  document.getElementById('sb-ev-steps').textContent=(totalSteps/nEp).toFixed(1);
+  document.getElementById('sb-eval-stats').style.display='flex';
+
+  if(lastTrace.length){
+    document.getElementById('sb-trace').textContent=lastTrace.join('  ');
+    document.getElementById('sb-trace-wrap').style.display='block';
+  }
+}
+
+// ── Step-by-step navigation ───────────────────────────────────────────────
+let sbIdx=0;
+let sbPlaying=false;
+let sbPlayTimer=null;
+
+function sbApplyAt(idx){
+  if(!sbResult||idx<0||idx>=sbResult.snaps.length) return;
+  sbIdx=idx;
+  const snap=sbResult.snaps[idx];
+  const{cfg,gamma}=sbResult;
+  const[sr,sc]=cfg.start;
+  const total=sbResult.snaps.length;
+
+  // For VI: extract greedy policy from snap.V; PI snaps already carry .policy
+  const pol=snap.policy||withConfig(cfg,()=>extractPolicy(snap.V,gamma));
+  withConfig(cfg,()=>renderPolicyGrid(pol,snap.V,'sb-policy-grid'));
+
+  // Stats
+  const m=sbGetMetric();
+  const metricVal=snap.metrics?snap.metrics[m]:(snap.delta??0);
+  const metaLbl=VI_METRIC_META[m]?.label||'Max |ΔV|';
+  document.getElementById('sb-res-iters').textContent=`${snap.iter} / ${total}`;
+  document.getElementById('sb-res-vstart').textContent=snap.V?.[sr]?.[sc]?.toFixed(3)??'—';
+  document.getElementById('sb-res-conv').textContent=metricVal>0?metricVal.toExponential(2):(idx===total-1?'✓ Converged':'—');
+  const ml=document.getElementById('sb-res-metric-lbl');if(ml) ml.textContent=metaLbl;
+
+  // Step info label
+  const info=document.getElementById('sb-step-info');
+  if(info){
+    const isLast=idx===total-1;
+    info.textContent=`Iter ${snap.iter} of ${total}`+(isLast?' · converged':'');
+  }
+
+  // Chart: highlight current point
+  if(sbChart){
+    sbChart.data.datasets[0].pointBackgroundColor=sbResult.snaps.map((_,i)=>i===idx?'#ffd43b':'transparent');
+    sbChart.data.datasets[0].pointRadius=sbResult.snaps.map((_,i)=>i===idx?5:2);
+    sbChart.update('none');
+  }
+
+  sbUpdateStepBtns();
+}
+
+function sbUpdateStepBtns(){
+  const n=sbResult?.snaps.length||0;
+  const backBtn=document.getElementById('sb-back-btn');
+  const nextBtn=document.getElementById('sb-next-btn');
+  if(backBtn) backBtn.disabled=sbIdx<=0;
+  if(nextBtn) nextBtn.disabled=sbIdx>=n-1;
+}
+
+function sbStepNext(){
+  if(sbResult&&sbIdx<sbResult.snaps.length-1) sbApplyAt(sbIdx+1);
+}
+
+function sbStepBack(){
+  if(sbIdx>0) sbApplyAt(sbIdx-1);
+}
+
+function sbGoToEnd(){
+  if(sbResult) sbApplyAt(sbResult.snaps.length-1);
+}
+
+function sbPlayToggle(){
+  const btn=document.getElementById('sb-play-btn');
+  if(sbPlaying){
+    sbPlaying=false;
+    clearTimeout(sbPlayTimer);
+    if(btn) btn.textContent='▶ Play';
+    return;
+  }
+  // Start from beginning if at end
+  if(sbResult&&sbIdx>=sbResult.snaps.length-1) sbApplyAt(0);
+  sbPlaying=true;
+  if(btn) btn.textContent='⏸ Pause';
+  function step(){
+    if(!sbPlaying||!sbResult||sbIdx>=sbResult.snaps.length-1){
+      sbPlaying=false;
+      if(btn) btn.textContent='▶ Play';
+      return;
+    }
+    sbApplyAt(sbIdx+1);
+    sbPlayTimer=setTimeout(step,480);
+  }
+  sbPlayTimer=setTimeout(step,480);
+}
+
+// ── Animate one episode on the 2D policy grid ─────────────────────────────
+let sbAnimRunning=false;
+
+function sbClearHighlights(){
+  document.querySelectorAll('#sb-policy-grid .pol-cell').forEach(c=>{
+    c.classList.remove('pol-cell-agent','pol-cell-visited','pol-cell-win','pol-cell-lose');
+  });
+}
+
+function sbPolicyCell(r,c,cols){
+  const grid=document.getElementById('sb-policy-grid');
+  return grid?.children[r*cols+c]||null;
+}
+
+async function sbAnimateEpisode(){
+  if(!sbResult){
+    document.getElementById('sb-anim-status').textContent='Run the algorithm first.';
+    return;
+  }
+  if(sbAnimRunning) return;
+  sbAnimRunning=true;
+  const btn=document.getElementById('sb-anim-btn');
+  if(btn) btn.disabled=true;
+
+  const{policy,cfg}=sbResult;
+  const cols=cfg.cols;
+  const maxSteps=Math.min(500,Math.max(10,parseInt(document.getElementById('sb-ep-maxsteps')?.value||100)));
+  const delay=parseInt(document.getElementById('sb-anim-speed')?.value||350);
+  const statusEl=document.getElementById('sb-anim-status');
+
+  sbClearHighlights();
+  const[sr,sc]=cfg.start;
+  let r=sr,c=sc,step=0,totalR=0,done=false;
+
+  // Mark start cell as agent
+  const startCell=sbPolicyCell(r,c,cols);
+  if(startCell) startCell.classList.add('pol-cell-agent');
+  statusEl.textContent=`Step 0  pos=(${r},${c})`;
+
+  await new Promise(res=>setTimeout(res,delay));
+
+  while(step<maxSteps&&!done){
+    const key=`${r},${c}`;
+
+    // Mark current cell as visited trail
+    const cur=sbPolicyCell(r,c,cols);
+    if(cur){cur.classList.remove('pol-cell-agent');cur.classList.add('pol-cell-visited');}
+
+    if(key in cfg.terminals){
+      if(cur){cur.classList.remove('pol-cell-visited');cur.classList.add(cfg.terminals[key]>0?'pol-cell-win':'pol-cell-lose');}
+      statusEl.textContent=`Done in ${step} steps · reward ${totalR.toFixed(1)} · `+(cfg.terminals[key]>0?'Goal reached!':'Hole!');
+      done=true;break;
+    }
+
+    const action=policy[key]||ACTIONS[0];
+    const[,nr,nc,rew,isDone]=withConfig(cfg,()=>sampleTrans(r,c,action));
+    totalR+=rew;step++;
+    r=nr;c=nc;done=isDone;
+
+    // Mark new position as agent
+    const next=sbPolicyCell(r,c,cols);
+    if(next) next.classList.add('pol-cell-agent');
+    statusEl.textContent=`Step ${step}  pos=(${r},${c})  r=${rew>=0?'+':''}${rew}  total=${totalR.toFixed(1)}`;
+
+    await new Promise(res=>setTimeout(res,delay));
+  }
+
+  if(!done){
+    // Timeout — mark final cell
+    const last=sbPolicyCell(r,c,cols);
+    if(last){last.classList.remove('pol-cell-agent');last.classList.add('pol-cell-visited');}
+    statusEl.textContent=`Timeout (${step} steps) · reward ${totalR.toFixed(1)}`;
+  }
+
+  sbAnimRunning=false;
+  if(btn) btn.disabled=false;
+}
+
+// Boot: initialise default grid immediately so it's ready when tab opens
+sbLoadDefault();
+sbUpdateProbs();
+
+// ── Statistics & Graphs Modal ─────────────────────────────────────────────
+let sbVstateChart=null,sbVfinalChart=null,sbSconvChart=null;
+
+const SB_STAT_COLORS=[
+  '#4f8ef7','#00d4aa','#ff6b6b','#ffd43b','#b06eff','#51cf66',
+  '#ff9800','#e91e63','#00bcd4','#8bc34a','#ff5722','#9c27b0',
+  '#03a9f4','#cddc39','#f44336','#26c6da'
+];
+
+function sbShowStats(){
+  if(!sbResult) return;
+  const{snaps,V,cfg,gamma}=sbResult;
+  const modal=document.getElementById('sb-stats-modal');
+  if(!modal) return;
+  modal.style.display='flex';
+
+  // Collect solvable states (non-wall, non-terminal)
+  const states=[];
+  for(let r=0;r<cfg.rows;r++) for(let c=0;c<cfg.cols;c++){
+    const key=`${r},${c}`;
+    if(!cfg.walls.has(key)&&!(key in cfg.terminals)) states.push({r,c,key});
+  }
+
+  const[sr,sc]=cfg.start;
+
+  // Headings
+  document.getElementById('sb-stats-heading').textContent=`${sbAlgo} — Statistics & Graphs`;
+  document.getElementById('sb-stats-sub').textContent=
+    `${snaps.length} iteration${snaps.length!==1?'s':''} · γ = ${gamma.toFixed(2)} · Grid ${cfg.rows}×${cfg.cols} · ${states.length} states solved`;
+
+  // Summary cards
+  let vMax=-Infinity,vMin=Infinity;
+  states.forEach(s=>{const v=V?.[s.r]?.[s.c]??0;if(v>vMax)vMax=v;if(v<vMin)vMin=v;});
+  const firstDelta=snaps[0]?.delta??0;
+  const lastDelta=snaps[snaps.length-1]?.delta??0;
+  const vStart=V?.[sr]?.[sc]?.toFixed(3)??'—';
+  const cards=document.getElementById('sb-stats-cards');
+  if(cards) cards.innerHTML=`
+    <div class="sb-stats-card"><div class="lbl">Algorithm</div><div class="val">${sbAlgo}</div></div>
+    <div class="sb-stats-card"><div class="lbl">Iterations</div><div class="val">${snaps.length}</div></div>
+    <div class="sb-stats-card"><div class="lbl">Discount γ</div><div class="val" style="color:var(--teal)">${gamma.toFixed(2)}</div></div>
+    <div class="sb-stats-card"><div class="lbl">States</div><div class="val">${states.length}</div></div>
+    <div class="sb-stats-card"><div class="lbl">V(start)</div><div class="val" style="color:var(--blue)">${vStart}</div></div>
+    <div class="sb-stats-card"><div class="lbl">V max</div><div class="val" style="color:var(--teal)">${vMax.toFixed(3)}</div></div>
+    <div class="sb-stats-card"><div class="lbl">V min</div><div class="val" style="color:var(--coral)">${vMin.toFixed(3)}</div></div>
+    <div class="sb-stats-card"><div class="lbl">Initial Δ</div><div class="val">${firstDelta>0?firstDelta.toExponential(2):'—'}</div></div>
+    <div class="sb-stats-card"><div class="lbl">Final Δ</div><div class="val" style="color:var(--teal)">${lastDelta>0?lastDelta.toExponential(2):'✓ 0'}</div></div>
+  `;
+
+  // ── 1. V(s) over iterations — one line per state ──────────────────────
+  const vstateEl=document.getElementById('sb-vstate-chart');
+  if(vstateEl){
+    if(sbVstateChart){sbVstateChart.destroy();sbVstateChart=null;}
+    const datasets=states.map((s,i)=>{
+      const color=SB_STAT_COLORS[i%SB_STAT_COLORS.length];
+      const isStart=s.r===sr&&s.c===sc;
+      return{
+        label:`(${s.r},${s.c})${isStart?' [S]':''}`,
+        data:snaps.map(snap=>snap.V?.[s.r]?.[s.c]??null),
+        borderColor:color,
+        backgroundColor:'transparent',
+        borderWidth:isStart?2.5:1.5,
+        borderDash:isStart?[]:[5,3],
+        pointRadius:0,
+        tension:.3
+      };
+    });
+    const chartTitle=`V(s) over Iterations  —  γ = ${gamma.toFixed(2)}`;
+    document.getElementById('sb-vstate-chart-lbl').textContent=chartTitle;
+    sbVstateChart=new Chart(vstateEl.getContext('2d'),{
+      type:'line',
+      data:{labels:snaps.map(s=>s.iter),datasets},
+      options:{
+        responsive:true,animation:false,
+        plugins:{
+          legend:{display:true,position:'right',
+            labels:{color:'#9090b0',font:{size:9},boxWidth:10,padding:5,usePointStyle:true}},
+          tooltip:{callbacks:{title:t=>'Iter '+t[0].label,label:c=>`${c.dataset.label}: ${(+c.parsed.y).toFixed(3)}`}}
+        },
+        scales:{
+          x:{ticks:{color:'#7b7fa0',font:{size:9},maxTicksLimit:12},
+             grid:{color:'rgba(255,255,255,.04)'},
+             title:{display:true,text:'Iteration',color:'#7b7fa0',font:{size:9}}},
+          y:{ticks:{color:'#7b7fa0',font:{size:9}},
+             grid:{color:'rgba(255,255,255,.04)'},
+             title:{display:true,text:'V(s)',color:'#7b7fa0',font:{size:9}}}
+        }
+      }
+    });
+  }
+
+  // ── 2. Final V* bar chart ─────────────────────────────────────────────
+  const vfinalEl=document.getElementById('sb-vfinal-chart');
+  if(vfinalEl){
+    if(sbVfinalChart){sbVfinalChart.destroy();sbVfinalChart=null;}
+    const labels=states.map(s=>`(${s.r},${s.c})`);
+    const data=states.map(s=>+(V?.[s.r]?.[s.c]??0).toFixed(4));
+    const colors=states.map((_,i)=>SB_STAT_COLORS[i%SB_STAT_COLORS.length]);
+    sbVfinalChart=new Chart(vfinalEl.getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets:[{
+        label:'V*(s)',data,
+        backgroundColor:colors.map(c=>c+'88'),
+        borderColor:colors,borderWidth:1,borderRadius:4
+      }]},
+      options:{
+        responsive:true,animation:false,
+        plugins:{legend:{display:false},
+          tooltip:{callbacks:{label:c=>`V* = ${c.parsed.y.toFixed(4)}`}}},
+        scales:{
+          x:{ticks:{color:'#7b7fa0',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
+          y:{ticks:{color:'#7b7fa0',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'},
+             title:{display:true,text:'V*(s)',color:'#7b7fa0',font:{size:9}}}
+        }
+      }
+    });
+  }
+
+  // ── 3. Convergence metric chart ───────────────────────────────────────
+  const sconvEl=document.getElementById('sb-sconv-chart');
+  if(sconvEl){
+    if(sbSconvChart){sbSconvChart.destroy();sbSconvChart=null;}
+    const m=sbGetMetric();
+    const meta=VI_METRIC_META[m]||VI_METRIC_META.max;
+    const convData=snaps.map(s=>{const v=s.metrics?s.metrics[m]:s.delta;return(v>0)?v:null;});
+    document.getElementById('sb-sconv-chart-lbl').textContent=`Convergence — ${meta.label} over Iterations`;
+    sbSconvChart=new Chart(sconvEl.getContext('2d'),{
+      type:'line',
+      data:{labels:snaps.map(s=>s.iter),datasets:[{
+        label:meta.label,data:convData,
+        borderColor:meta.color,backgroundColor:meta.color+'18',
+        borderWidth:2,pointRadius:2,tension:.35,fill:true
+      }]},
+      options:{
+        responsive:true,animation:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{title:t=>'Iter '+t[0].label}}},
+        scales:{
+          x:{ticks:{color:'#7b7fa0',font:{size:9},maxTicksLimit:12},
+             grid:{color:'rgba(255,255,255,.04)'},
+             title:{display:true,text:'Iteration',color:'#7b7fa0',font:{size:9}}},
+          y:{type:'logarithmic',ticks:{color:'#7b7fa0',font:{size:9}},
+             grid:{color:'rgba(255,255,255,.04)'},
+             title:{display:true,text:meta.yLabel,color:'#7b7fa0',font:{size:9}}}
+        }
+      }
+    });
+  }
+}
+
+function sbHideStats(){
+  const modal=document.getElementById('sb-stats-modal');
+  if(modal) modal.style.display='none';
+}
+</script>
+</body>
+</html>
