@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Lab · Interactive AI Tutorials</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06070d;--bg2:#0d1226;--bg3:#161a36;
+  --blue:#4f8ef7;--teal:#00d4aa;--coral:#ff6b6b;--gold:#ffd43b;--purple:#b06eff;
+  --text:#e8eaf6;--muted:#8b8fa8;--border:rgba(255,255,255,0.08);
+  --r:14px;
+}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;
+  min-height:100vh;overflow-x:hidden;position:relative;
+}
+/* Three.js canvas pinned behind everything */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+/* Soft vignette */
+body::before{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 0%,rgba(176,110,255,0.10) 0%,transparent 55%),
+             radial-gradient(ellipse at 80% 90%,rgba(0,212,170,0.08) 0%,transparent 50%),
+             radial-gradient(ellipse at 20% 90%,rgba(79,142,247,0.07) 0%,transparent 50%)}
+
+.page-wrap{position:relative;z-index:2;max-width:1240px;margin:0 auto;padding:60px 28px 80px}
+
+/* ── HERO ── */
+.hero{text-align:center;margin-bottom:64px;animation:fade-up .8s cubic-bezier(.2,.7,.2,1) both}
+.eyebrow{display:inline-block;font-size:11px;font-weight:700;letter-spacing:3.6px;text-transform:uppercase;
+  color:var(--teal);border:1px solid rgba(0,212,170,.32);border-radius:40px;
+  padding:6px 18px;margin-bottom:18px;background:rgba(0,212,170,.06);
+  text-shadow:0 0 12px rgba(0,212,170,.55)}
+h1.title{font-size:clamp(2.6rem,6vw,4.6rem);font-weight:800;line-height:1.05;letter-spacing:-1.5px;
+  background:linear-gradient(135deg,#fff 0%,var(--blue) 35%,var(--purple) 65%,var(--teal) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:18px}
+.hero p.sub{color:var(--muted);font-size:clamp(1rem,1.4vw,1.18rem);max-width:680px;margin:0 auto;line-height:1.7}
+.hero p.sub strong{color:var(--text)}
+.byline{margin-top:18px;font-size:.78rem;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase}
+.byline a{color:var(--teal);text-decoration:none;border-bottom:1px dashed rgba(0,212,170,.3)}
+.byline a:hover{color:#fff;border-bottom-color:#fff}
+
+/* ── LAB GRID ── */
+.lab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;margin-top:18px;
+  max-width:780px;margin-left:auto;margin-right:auto;perspective:1400px}
+@media(min-width:780px){.lab-grid{grid-template-columns:repeat(2,1fr)}}
+
+.lab-card{
+  position:relative;display:flex;flex-direction:column;gap:14px;
+  background:linear-gradient(180deg,rgba(20,22,42,.85) 0%,rgba(13,15,30,.85) 100%);
+  border:1px solid var(--border);border-radius:18px;padding:24px 22px 22px;
+  text-decoration:none;color:inherit;
+  transform-style:preserve-3d;transition:transform .35s cubic-bezier(.2,.7,.2,1),
+    border-color .35s,box-shadow .35s;
+  overflow:hidden;backdrop-filter:blur(8px);min-height:300px;
+  animation:fade-up .8s cubic-bezier(.2,.7,.2,1) both;
+}
+.lab-card:nth-child(1){animation-delay:.05s}
+.lab-card:nth-child(2){animation-delay:.15s}
+.lab-card:nth-child(3){animation-delay:.25s}
+.lab-card:nth-child(4){animation-delay:.35s}
+
+.lab-card::before{content:'';position:absolute;inset:0;border-radius:18px;
+  background:radial-gradient(ellipse at 50% 0%,var(--accent,#4f8ef7) 0%,transparent 60%);
+  opacity:.04;transition:opacity .35s;pointer-events:none}
+.lab-card::after{content:'';position:absolute;inset:0;border-radius:18px;
+  box-shadow:0 0 0 1px transparent inset;pointer-events:none;transition:box-shadow .35s}
+
+.lab-card:hover{transform:translateY(-8px) rotateX(4deg) rotateY(-4deg);
+  border-color:var(--accent,#4f8ef7);
+  box-shadow:0 24px 60px -20px var(--accent-glow,rgba(79,142,247,.55)),
+             0 0 60px -10px var(--accent-glow,rgba(79,142,247,.35))}
+.lab-card:hover::before{opacity:.18}
+.lab-card:hover::after{box-shadow:0 0 0 1px var(--accent,#4f8ef7) inset}
+.lab-card:hover .arrow{transform:translateX(6px)}
+.lab-card:hover .icon{filter:drop-shadow(0 0 14px var(--accent-glow,rgba(79,142,247,.6)))}
+
+.lab-card .icon{position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;
+  color:var(--accent,#4f8ef7);transition:filter .35s;transform:translateZ(20px)}
+.lab-card .icon svg{width:32px;height:32px}
+
+.lab-card .badge{position:absolute;top:18px;right:18px;font-size:.62rem;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;padding:4px 10px;border-radius:30px;border:1px solid var(--accent,#4f8ef7);
+  color:var(--accent,#4f8ef7);background:rgba(255,255,255,.02);transform:translateZ(20px)}
+
+.lab-card h2{font-size:1.45rem;font-weight:700;color:var(--text);line-height:1.2;letter-spacing:-.5px;
+  transform:translateZ(15px)}
+.lab-card h2 .sub{display:block;font-size:.78rem;font-weight:600;color:var(--muted);letter-spacing:1.2px;
+  text-transform:uppercase;margin-top:4px}
+.lab-card p{font-size:.86rem;line-height:1.6;color:var(--muted);transform:translateZ(10px)}
+.lab-card .open{margin-top:auto;display:inline-flex;align-items:center;gap:6px;
+  font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--accent,#4f8ef7);
+  font-weight:600;letter-spacing:.5px;transform:translateZ(15px)}
+.lab-card .open .arrow{display:inline-block;transition:transform .25s}
+
+/* Per-card accent themes */
+.lab-mdp     {--accent:#4f8ef7;--accent-glow:rgba(79,142,247,.55)}
+.lab-rl      {--accent:#00d4aa;--accent-glow:rgba(0,212,170,.55)}
+.lab-pomdp   {--accent:#b06eff;--accent-glow:rgba(176,110,255,.55)}
+.lab-drl     {--accent:#ffd43b;--accent-glow:rgba(255,212,59,.55)}
+
+/* ── FOOTER ── */
+footer{text-align:center;margin-top:80px;padding:30px 20px;color:var(--muted);font-size:.78rem;letter-spacing:1.2px}
+footer a{color:var(--teal);text-decoration:none}
+footer a:hover{color:#fff}
+
+@keyframes fade-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* small screens — drop the 3D tilt to avoid weirdness on touch */
+@media(hover:none){.lab-card:hover{transform:none}}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="page-wrap">
+
+  <!-- ═══════ HERO ═══════ -->
+  <header class="hero">
+    <span class="eyebrow">Interactive AI Tutorials</span>
+    <h1 class="title">AI-Lab</h1>
+    <p class="sub">
+      A collection of <strong>browser-native, interactive labs</strong> covering the foundations of decision-making under uncertainty —
+      from Markov Decision Processes all the way up to Deep Reinforcement Learning. Every lab runs entirely client-side; no install, no servers.
+    </p>
+    <div class="byline">Authored by <a href="https://github.com/BergerZvika" target="_blank" rel="noopener">Zvika Berger</a> · <a href="https://github.com/BergerZvika/AI-Lab" target="_blank" rel="noopener">github.com/BergerZvika/AI-Lab</a></div>
+  </header>
+
+  <!-- ═══════ LAB GRID ═══════ -->
+  <div class="lab-grid">
+
+    <a class="lab-card lab-mdp" href="mdp_tutorial/mdp_tutorial.html">
+      <span class="badge">01 · Foundations</span>
+      <div class="icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3"  width="8" height="8" rx="1.2"/><rect x="13" y="3"  width="8" height="8" rx="1.2"/><rect x="23" y="3"  width="6" height="8" rx="1.2"/>
+          <rect x="3" y="13" width="8" height="8" rx="1.2"/><rect x="13" y="13" width="8" height="8" rx="1.2" fill="currentColor" fill-opacity=".15"/><rect x="23" y="13" width="6" height="8" rx="1.2"/>
+          <rect x="3" y="23" width="8" height="6" rx="1.2"/><rect x="13" y="23" width="8" height="6" rx="1.2"/><rect x="23" y="23" width="6" height="6" rx="1.2"/>
+          <path d="M17 13 L17 21" stroke-dasharray="2 2"/><path d="M21 17 L25 17" stroke-dasharray="2 2"/>
+        </svg>
+      </div>
+      <h2>MDP<span class="sub">Markov Decision Processes</span></h2>
+      <p>Build intuition for states, actions, transitions and rewards. Value iteration, policy iteration, and the Bellman equations — all visualised on an interactive 3D gridworld.</p>
+      <span class="open">Open lab <span class="arrow">→</span></span>
+    </a>
+
+    <a class="lab-card lab-drl" href="deep_rl_tutorial/deep_rl_tutorial.html">
+      <span class="badge">02 · Deep RL</span>
+      <div class="icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="5"  cy="9"  r="1.6" fill="currentColor"/>
+          <circle cx="5"  cy="16" r="1.6" fill="currentColor"/>
+          <circle cx="5"  cy="23" r="1.6" fill="currentColor"/>
+          <circle cx="16" cy="6"  r="1.6" fill="currentColor"/>
+          <circle cx="16" cy="13" r="1.6" fill="currentColor"/>
+          <circle cx="16" cy="19" r="1.6" fill="currentColor"/>
+          <circle cx="16" cy="26" r="1.6" fill="currentColor"/>
+          <circle cx="27" cy="12" r="1.8" fill="currentColor"/>
+          <circle cx="27" cy="20" r="1.8" fill="currentColor"/>
+          <g opacity=".4">
+            <path d="M5 9  L16 6"/><path d="M5 9  L16 13"/><path d="M5 9  L16 19"/><path d="M5 9  L16 26"/>
+            <path d="M5 16 L16 6"/><path d="M5 16 L16 13"/><path d="M5 16 L16 19"/><path d="M5 16 L16 26"/>
+            <path d="M5 23 L16 6"/><path d="M5 23 L16 13"/><path d="M5 23 L16 19"/><path d="M5 23 L16 26"/>
+            <path d="M16 6  L27 12"/><path d="M16 13 L27 12"/><path d="M16 19 L27 20"/><path d="M16 26 L27 20"/>
+          </g>
+        </svg>
+      </div>
+      <h2>Deep RL<span class="sub">DQN, PER, DDQN, DDDQN</span></h2>
+      <p>From the Q-table to the Q-network. Build a vanilla DQN, then layer in Prioritised Replay, Double targets, and the Dueling architecture — every concept visualised end-to-end.</p>
+      <span class="open">Open lab <span class="arrow">→</span></span>
+    </a>
+
+  </div>
+
+  <footer>
+    Built with HTML · CSS · Three.js · zero servers · zero dependencies beyond a CDN font and Three.js
+  </footer>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   Three.js background scene
+   Slowly drifting glowing point-cloud with a
+   handful of larger glowing spheres orbiting
+   the camera. All shapes use additive blending
+   so the colours stack nicely behind the cards.
+═══════════════════════════════════════════ */
+(function(){
+  if(typeof THREE === 'undefined') return;
+
+  const canvas = document.getElementById('bg-canvas');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  renderer.setClearColor(0x000000, 0);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 600);
+  camera.position.set(0, 0, 70);
+
+  /* ── particle field ── */
+  const N = 1200;
+  const positions = new Float32Array(N * 3);
+  const colors    = new Float32Array(N * 3);
+  const palette = [
+    new THREE.Color('#4f8ef7'),
+    new THREE.Color('#00d4aa'),
+    new THREE.Color('#b06eff'),
+    new THREE.Color('#ffd43b'),
+    new THREE.Color('#ff6b6b'),
+  ];
+  for(let i=0;i<N;i++){
+    const r = 30 + Math.random()*220;
+    const theta = Math.random()*Math.PI*2;
+    const phi   = Math.acos(2*Math.random()-1);
+    positions[i*3]   = r*Math.sin(phi)*Math.cos(theta);
+    positions[i*3+1] = r*Math.sin(phi)*Math.sin(theta);
+    positions[i*3+2] = r*Math.cos(phi) - 80;
+    const c = palette[Math.floor(Math.random()*palette.length)];
+    colors[i*3]   = c.r;
+    colors[i*3+1] = c.g;
+    colors[i*3+2] = c.b;
+  }
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  pGeo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+  const pMat = new THREE.PointsMaterial({
+    size: 1.4, vertexColors: true, transparent: true, opacity: .85,
+    blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+  });
+  const points = new THREE.Points(pGeo, pMat);
+  scene.add(points);
+
+  /* ── a few larger glowing icosahedra ── */
+  const glows = [];
+  for(let i=0;i<5;i++){
+    const geo = new THREE.IcosahedronGeometry(1.6 + Math.random()*1.4, 0);
+    const mat = new THREE.MeshBasicMaterial({
+      color: palette[i % palette.length],
+      transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending,
+      wireframe: true,
+    });
+    const m = new THREE.Mesh(geo, mat);
+    const r = 50 + Math.random()*40;
+    const a = Math.random()*Math.PI*2;
+    m.position.set(Math.cos(a)*r, (Math.random()-.5)*40, Math.sin(a)*r - 30);
+    m.userData = {
+      omega: 0.001 + Math.random()*0.004,
+      orbit: a, orbitRadius: r, orbitSpeed: 0.0006 + Math.random()*0.0008,
+      bobY: m.position.y, bobAmp: 4 + Math.random()*8, bobOmega: 0.001 + Math.random()*0.002,
+    };
+    glows.push(m);
+    scene.add(m);
+  }
+
+  /* ── mouse parallax ── */
+  let mx = 0, my = 0;
+  window.addEventListener('mousemove', e=>{
+    mx = (e.clientX / window.innerWidth)  * 2 - 1;
+    my = (e.clientY / window.innerHeight) * 2 - 1;
+  }, {passive:true});
+
+  /* ── animate ── */
+  let t0 = performance.now();
+  function tick(now){
+    const dt = now - t0; t0 = now;
+    points.rotation.y += 0.00012 * dt;
+    points.rotation.x += 0.00005 * dt;
+
+    glows.forEach(m=>{
+      m.rotation.x += m.userData.omega * dt;
+      m.rotation.y += m.userData.omega * dt * 0.7;
+      m.userData.orbit += m.userData.orbitSpeed * dt;
+      m.position.x = Math.cos(m.userData.orbit) * m.userData.orbitRadius;
+      m.position.z = Math.sin(m.userData.orbit) * m.userData.orbitRadius - 30;
+      m.position.y = m.userData.bobY + Math.sin(now * m.userData.bobOmega) * m.userData.bobAmp;
+    });
+
+    /* gentle parallax toward mouse */
+    camera.position.x += ((mx*6) - camera.position.x) * 0.04;
+    camera.position.y += ((-my*4) - camera.position.y) * 0.04;
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  /* ── resize ── */
+  window.addEventListener('resize', ()=>{
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+  });
+})();
+
+/* ═══════════════════════════════════════════
+   Card 3D tilt — follow mouse inside the card
+═══════════════════════════════════════════ */
+document.querySelectorAll('.lab-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width  - 0.5;
+    const y = (e.clientY - r.top ) / r.height - 0.5;
+    card.style.transform = `translateY(-8px) rotateX(${-y*8}deg) rotateY(${x*8}deg)`;
+  });
+  card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+});
+</script>
+</body>
+</html>
