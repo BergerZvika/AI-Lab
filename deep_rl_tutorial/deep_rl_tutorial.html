@@ -2432,7 +2432,7 @@ ENVS.breakout = {
       <rect x="0" y="0" width="480" height="230" fill="#000"/>
       <g id="${p}-boBricks"></g>
       <rect id="${p}-boPaddle" x="${240-BO.padW/2}" y="${BO.paddleY}" width="${BO.padW}" height="${BO.padH}" fill="#e8eaf6"/>
-      <rect id="${p}-boBall" x="${240-BO.ballR}" y="${140-BO.ballR}" width="${BO.ballR*2}" height="${BO.ballR*2}" fill="#ffd43b"/>
+      <circle id="${p}-boBall" cx="240" cy="140" r="${BO.ballR}" fill="#ffd43b"/>
       <text x="14" y="20" font-family="Syne" font-size="10" font-weight="700" fill="#7b7fa0">BREAKOUT</text>
       <text x="466" y="20" text-anchor="end" font-family="JetBrains Mono" font-size="10" fill="#7b7fa0" id="${p}-step">score 0</text>
     </svg>`;
@@ -2451,7 +2451,7 @@ ENVS.breakout = {
       br.innerHTML = html;
     }
     const pad=_$(p+'-boPaddle'); if(pad) pad.setAttribute('x', s.paddleX-BO.padW/2);
-    const ball=_$(p+'-boBall'); if(ball){ball.setAttribute('x',s.ballX-BO.ballR);ball.setAttribute('y',s.ballY-BO.ballR);}
+    const ball=_$(p+'-boBall'); if(ball){ball.setAttribute('cx',s.ballX);ball.setAttribute('cy',s.ballY);}
     const stepEl=_$(p+'-step'); if(stepEl) stepEl.textContent = 'score '+s.score;
   },
   step(s,a){
@@ -4312,12 +4312,16 @@ function buildPlayground(host){
     setEnv(name){
       if(!ENVS[name]) return;
       this.actionQueue.length = 0;
+      // Kill any running episode first, so its timer can't outlive this
+      // runner and keep animating into the next env's SVG.
+      if(this.cp){ this.cp.stop(); this.cp.reset(); }
       this.envName = name;
       const env = ENVS[name];
       document.getElementById('pg-host').innerHTML = env.buildSVG('pg-cp');
       document.getElementById('pg-info').textContent = env.tag + ' · ' + env.desc;
       this.cp = makeEnv('pg-cp', name);
       this.cp.reset();
+      this._setRunBtn('▶ Run Episode');
       document.querySelectorAll('#pg-env-pills .env-pill').forEach(el=>{
         el.classList.toggle('on', el.dataset.env===name);
       });
@@ -4434,7 +4438,8 @@ function buildPlayground(host){
       //   mountaincar   → reach the flag (no failure state; drive until you win)
       //   spaceinvaders → all aliens cleared, or an alien reaches the ground
       //   cartpole      → the pole falls over (see failNowFn below)
-      const NO_TIMEOUT = ['lunarlander','mountaincar','spaceinvaders','cartpole'];
+      //   breakout      → all bricks cleared, or the ball falls (loss)
+      const NO_TIMEOUT = ['lunarlander','mountaincar','spaceinvaders','cartpole','breakout'];
       this.cp.maxStepsOverride = NO_TIMEOUT.includes(this.envName) ? Infinity : null;
       // CartPole: end ONLY when the pole falls — ignore the cart-off-track bound.
       this.cp.failNowFn = (this.envName === 'cartpole')
@@ -4446,8 +4451,8 @@ function buildPlayground(host){
       this.lastManualAction = null;
       this.actionQueue.length = 0;
       if(this.cp){
-        if(this.cp.running) this.cp.stop();
-        this.cp.reset();
+        this.cp.stop();      // unconditional: always halt, even if state is stale
+        this.cp.reset();     // clears the timer and re-inits to the idle frame
       }
       this._setRunBtn('▶ Run Episode');
     }
