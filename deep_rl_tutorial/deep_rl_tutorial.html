@@ -2322,7 +2322,7 @@ ENVS.spaceinvaders = {
 
 /* ── 8. PONG (Atari · decorative) ── */
 const PNG = {courtT:30, courtB:200, padW:6, padH:32, ballR:5,
-             padLX:34, padRX:440, ballSpd:3, maxScore:11};
+             padLX:34, padRX:440, ballSpd:3, maxScore:10};
 ENVS.pong = {
   name:'Pong', tag:'pixels · 3 actions', target:21, maxSteps:800,
   nActions:3, discrete:true, deco:true, subtitle:'atari',
@@ -2626,6 +2626,9 @@ function makeEnv(prefix, envName){
     env, prefix,
     state: env.initState(),
     step:0, ret:0, running:false, failed:false, timer:null,
+    stopOnFail:false,        // Playground: halt at once on a loss (no fail animation)
+    maxStepsOverride:null,   // Playground: override the env's step cap (Infinity = no time-out)
+    failNowFn:null,          // Playground: override the env's loss condition
     setEnv(name){
       this.envName = name;
       this.env = ENVS[name];
@@ -2665,7 +2668,7 @@ function makeEnv(prefix, envName){
       // Persist call-args so pause/resume can re-enter the loop later.
       this._policy = policy;
       this._onEnd  = onEnd;
-      this._maxSteps = this.env.maxSteps || 500;
+      this._maxSteps = (this.maxStepsOverride != null) ? this.maxStepsOverride : (this.env.maxSteps || 500);
       this._tickMs   = this.env.tickMs   || 20;
       this._startTimer();
     },
@@ -2679,9 +2682,10 @@ function makeEnv(prefix, envName){
           this.step++; this.state._t = this.step;
           this.ret += (out.reward||0);
           this.render();
-          if(env.failNow(this.state)){
+          if((this.failNowFn ? this.failNowFn(this.state) : env.failNow(this.state))){
             this.failed=true;
             const ss=$('status'); if(ss) ss.textContent = 'failed @ '+this.step;
+            if(this.stopOnFail){ this._finish(null, 'failed'); }   // freeze losing frame, stop now
           } else if(out.done){
             this._finish((out.reward>0 || this.ret>0) ? 'solved!' : 'done', 'done');
           } else if(this.step>=this._maxSteps){
@@ -4424,6 +4428,18 @@ function buildPlayground(host){
       this.lastManualAction = null;
       this.actionQueue.length = 0;
       this._setRunBtn('⏸ Pause');
+      this.cp.stopOnFail = true;     // Playground: stop the moment the game is lost
+      // No step cap for these — they end only at their natural terminal state:
+      //   lunarlander   → land or crash (fuel is finite, so gravity forces it)
+      //   mountaincar   → reach the flag (no failure state; drive until you win)
+      //   spaceinvaders → all aliens cleared, or an alien reaches the ground
+      //   cartpole      → the pole falls over (see failNowFn below)
+      const NO_TIMEOUT = ['lunarlander','mountaincar','spaceinvaders','cartpole'];
+      this.cp.maxStepsOverride = NO_TIMEOUT.includes(this.envName) ? Infinity : null;
+      // CartPole: end ONLY when the pole falls — ignore the cart-off-track bound.
+      this.cp.failNowFn = (this.envName === 'cartpole')
+        ? (st => Math.abs(st.th) > CP.th_thresh)
+        : null;
       this.cp.run(s => this.policy(s), label, this.Q, this.algoKey === 'manual', ()=>this._setRunBtn('▶ Run Episode'));
     },
     reset(){
