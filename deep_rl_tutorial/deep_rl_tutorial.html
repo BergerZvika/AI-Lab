@@ -1971,8 +1971,8 @@ ENVS.acrobot = {
 ENVS.bipedal = {
   name:'BipedalWalker', tag:'24D · continuous', target:300, maxSteps:400,
   nActions:0, discrete:false, deco:true, subtitle:'viz',
-  desc:'Walk forward. (decorative animation — quality drives gait smoothness)',
-  initState(){ return {phase:0, x:60, fall:0, _t:0, score:0, qHint:0}; },
+  desc:'Walk forward. (decorative — Q drives gait; Manual: hold → to stride, ← to keep balance)',
+  initState(){ return {phase:0, x:60, fall:0, lean:0, _t:0, score:0, qHint:0}; },
   buildSVG(p){
     return `<svg viewBox="0 0 480 230" xmlns="http://www.w3.org/2000/svg">
       <line x1="0" y1="200" x2="480" y2="200" stroke="#2c2e54" stroke-width="2"/>
@@ -2006,7 +2006,7 @@ ENVS.bipedal = {
     const kneeR  = Math.max(0, Math.sin(ph+Math.PI)+0.5)*0.7*Q + 0.3*Math.abs(noise)*(1-Q);
     const xpos = Math.min(420, Math.max(60, s.x));
     const ybob = Math.cos(ph*2)*2*Q + noise*4*(1-Q);
-    const tilt = (s.fall>0)? Math.min(85, s.fall*0.9) : noise*8*(1-Q);
+    const tilt = (s.fall>0)? Math.min(85, s.fall*0.9) : noise*8*(1-Q) + (s.lean||0)*22;
     const W = _$(p+'-walker');
     if(W) W.setAttribute('transform',`translate(${xpos.toFixed(1)},${(180+ybob).toFixed(1)}) rotate(${tilt.toFixed(1)})`);
     const mkLeg=(uId,lId,swing,knee)=>{
@@ -2023,10 +2023,29 @@ ENVS.bipedal = {
   step(s,a){
     s._t++;
     if(s.manual){
-      // Continuous joint torques aren't usefully bound to a keyboard.
-      // March in place: legs animate but no forward motion or fall.
-      s.phase += 0.10;
-      return {reward:0, done:false};
+      // Keyboard-playable walker: hold → to stride forward, ← to lean back and
+      // recover balance. Striding builds forward lean; let it run away and the
+      // walker topples — a hands-on taste of why bipedal control is hard.
+      if(s.fall>0){                                  // already toppling
+        s.fall = Math.min(95, s.fall+3);
+        return s.fall>=90 ? {reward:0, done:true} : {reward:0, done:false};
+      }
+      if(a===1){                                     // → stride forward
+        s.phase += 0.18;
+        s.x     += 2.4;
+        s.lean   = Math.min(1.4, s.lean + 0.018);
+      } else if(a===0){                              // ← lean back / brake
+        s.phase += 0.06;
+        s.x      = Math.max(60, s.x - 0.4);
+        s.lean   = Math.max(-0.3, s.lean - 0.05);
+      } else {                                       // stand still
+        s.phase += 0.04;
+        s.lean  *= 0.94;
+      }
+      s.score = (s.x-60)|0;
+      if(s.lean > 1){ s.fall = 1; }                  // lost balance → fall
+      if(s.x >= 440) return {reward:1, done:true};   // reached the far side
+      return {reward:1, done:false};
     }
     s.phase += 0.14 + 0.06*s.qHint;
     s.x += 0.4 + 1.4*s.qHint;       // moves forward only when trained
@@ -2596,6 +2615,10 @@ ENVS.frozenlake = {
    IDs follow {prefix}-X pattern; the env owns its SVG layout.
    Stat slots ({prefix}-stat-1, {prefix}-stat-2) and {prefix}-r/{prefix}-status
    are filled by the runner. */
+/* Sentinel returned by a manual policy when the env is turn-based and no key
+   has been pressed this tick — the runner skips the step entirely. */
+const PG_NOOP = '__noop__';
+
 function makeEnv(prefix, envName){
   const env = ENVS[envName];
   const $ = id => document.getElementById(prefix+'-'+id);
@@ -2651,6 +2674,7 @@ function makeEnv(prefix, envName){
       this.timer = setInterval(()=>{
         if(!this.failed){
           const a = this._policy(this.state);
+          if(a === PG_NOOP){ this.render(); return; }   // turn-based: idle until a key press
           const out = env.step(this.state, a);
           this.step++; this.state._t = this.step;
           this.ret += (out.reward||0);
@@ -4179,11 +4203,12 @@ const KEYMAPS = {
   },
   frozenlake: {
     'ArrowLeft':0, 'ArrowDown':1, 'ArrowRight':2, 'ArrowUp':3, idle:1,
+    stepOnPress:true,                                  // turn-based: one move per key press
     chips:[['←','left'], ['↓','down'], ['→','right'], ['↑','up']]
   },
   bipedal: {
-    idle:0,
-    chips:[['—','continuous control · no manual mode']]
+    'ArrowRight':1, 'ArrowLeft':0, idle:2,
+    chips:[['→','stride forward'], ['←','lean back / balance']]
   },
   pacman: {
     'ArrowLeft':0, 'ArrowRight':1, 'ArrowUp':2, 'ArrowDown':3, idle:1,
@@ -4262,6 +4287,7 @@ function buildPlayground(host){
     cp: null,
     pressedKey: null,
     keyHandler: null,
+    actionQueue: [],          // pending moves for turn-based (stepOnPress) envs
 
     setAlgo(key){
       const a = ALGO_PRESETS.find(x=>x.key===key);
@@ -4281,6 +4307,7 @@ function buildPlayground(host){
 
     setEnv(name){
       if(!ENVS[name]) return;
+      this.actionQueue.length = 0;
       this.envName = name;
       const env = ENVS[name];
       document.getElementById('pg-host').innerHTML = env.buildSVG('pg-cp');
@@ -4311,6 +4338,11 @@ function buildPlayground(host){
       if(k in km){
         this.pressedKey = k;
         e.preventDefault();
+        // Turn-based envs: each distinct press = exactly one queued move.
+        // Ignore OS key-repeat so holding a key doesn't auto-walk.
+        if(km.stepOnPress && !e.repeat && typeof km[k] === 'number'){
+          this.actionQueue.push(km[k]);
+        }
         const lookKey = (k === ' ') ? 'Space' : k;
         const sel = document.querySelector(`#pg-kb .kb-key[data-key="${lookKey}"]`);
         if(sel) sel.classList.add('active');
@@ -4326,7 +4358,7 @@ function buildPlayground(host){
     },
 
     updateKBHook(){
-      const wantHook = (this.algoKey === 'manual' && currentTab === 8);
+      const wantHook = (this.algoKey === 'manual' && currentTab === 7);
       if(wantHook && !this.keyHandler){
         this.keyHandler = {
           down: e => this.onKeyDown(e),
@@ -4339,6 +4371,7 @@ function buildPlayground(host){
         document.removeEventListener('keyup',   this.keyHandler.up);
         this.keyHandler = null;
         this.pressedKey = null;
+        this.actionQueue.length = 0;
         document.querySelectorAll('#pg-kb .kb-key').forEach(el=>el.classList.remove('active'));
       }
       this.refreshKB();
@@ -4350,6 +4383,10 @@ function buildPlayground(host){
       if(this.algoKey === 'manual'){
         const km = KEYMAPS[this.envName];
         if(!km) return env.randomAction();
+        // Turn-based: advance one step per key press; otherwise stay put.
+        if(km.stepOnPress){
+          return this.actionQueue.length ? this.actionQueue.shift() : PG_NOOP;
+        }
         if(this.pressedKey != null && (this.pressedKey in km)){
           this.lastManualAction = km[this.pressedKey];
           return this.lastManualAction;
@@ -4385,11 +4422,13 @@ function buildPlayground(host){
       const label = this.algoKey === 'manual' ? 'manual' :
         (ALGO_PRESETS.find(a=>a.key===this.algoKey)||{}).label;
       this.lastManualAction = null;
+      this.actionQueue.length = 0;
       this._setRunBtn('⏸ Pause');
       this.cp.run(s => this.policy(s), label, this.Q, this.algoKey === 'manual', ()=>this._setRunBtn('▶ Run Episode'));
     },
     reset(){
       this.lastManualAction = null;
+      this.actionQueue.length = 0;
       if(this.cp){
         if(this.cp.running) this.cp.stop();
         this.cp.reset();
