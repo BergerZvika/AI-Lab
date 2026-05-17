@@ -49,6 +49,7 @@ h1.title{font-size:clamp(2.6rem,6vw,4.6rem);font-weight:800;line-height:1.05;let
 .lab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;margin-top:18px;
   max-width:780px;margin-left:auto;margin-right:auto;perspective:1400px}
 @media(min-width:780px){.lab-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1100px){.lab-grid{grid-template-columns:repeat(3,1fr);max-width:1180px}}
 
 .lab-card{
   position:relative;display:flex;flex-direction:column;gap:14px;
@@ -102,7 +103,7 @@ h1.title{font-size:clamp(2.6rem,6vw,4.6rem);font-weight:800;line-height:1.05;let
 /* Per-card accent themes */
 .lab-mdp     {--accent:#4f8ef7;--accent-glow:rgba(79,142,247,.55)}
 .lab-rl      {--accent:#00d4aa;--accent-glow:rgba(0,212,170,.55)}
-.lab-pomdp   {--accent:#b06eff;--accent-glow:rgba(176,110,255,.55)}
+.lab-mcts    {--accent:#b06eff;--accent-glow:rgba(176,110,255,.55)}
 .lab-drl     {--accent:#ffd43b;--accent-glow:rgba(255,212,59,.55)}
 
 /* ── FOOTER ── */
@@ -175,6 +176,34 @@ footer a:hover{color:#fff}
       </div>
       <h2>Deep RL<span class="sub">DQN, PER, DDQN, DDDQN</span></h2>
       <p>From the Q-table to the Q-network. Build a vanilla DQN, then layer in Prioritised Replay, Double targets, and the Dueling architecture — every concept visualised end-to-end.</p>
+      <span class="open">Open lab <span class="arrow">→</span></span>
+    </a>
+
+    <a class="lab-card lab-mcts" href="mcts_tutorial/mcts_tutorial.html">
+      <span class="badge">03 · Planning</span>
+      <div class="icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Root -->
+          <circle cx="16" cy="5" r="2.2" fill="currentColor" fill-opacity=".25"/>
+          <!-- Level 1 -->
+          <circle cx="7"  cy="15" r="1.8" fill="currentColor" fill-opacity=".15"/>
+          <circle cx="16" cy="15" r="1.8" fill="currentColor" fill-opacity=".15"/>
+          <circle cx="25" cy="15" r="1.8" fill="currentColor" fill-opacity=".15"/>
+          <!-- Level 2 (deeper on the centre branch — asymmetric) -->
+          <circle cx="12" cy="25" r="1.5" fill="currentColor" fill-opacity=".15"/>
+          <circle cx="16" cy="25" r="1.5" fill="currentColor" fill-opacity=".15"/>
+          <circle cx="20" cy="25" r="1.5" fill="currentColor" fill-opacity=".15"/>
+          <!-- Edges -->
+          <path d="M16 7  L 7 13"/>
+          <path d="M16 7  L 16 13"/>
+          <path d="M16 7  L 25 13"/>
+          <path d="M16 17 L 12 23"/>
+          <path d="M16 17 L 16 23"/>
+          <path d="M16 17 L 20 23"/>
+        </svg>
+      </div>
+      <h2>MCTS<span class="sub">Monte Carlo Tree Search</span></h2>
+      <p>The algorithm behind AlphaGo. Selection, Expansion, Simulation, Backpropagation — see how UCB1 builds an asymmetric tree, then play Tic-Tac-Toe against a live MCTS agent.</p>
       <span class="open">Open lab <span class="arrow">→</span></span>
     </a>
 
