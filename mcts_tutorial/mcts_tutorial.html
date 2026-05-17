@@ -2565,7 +2565,7 @@ function renderMctsExample(){
     return html;
   }
 
-  document.querySelectorAll('.mcts-panel[data-phase]').forEach(panel=>{
+  document.querySelectorAll('#panel-1 .mcts-panel[data-phase]').forEach(panel=>{
     const phase = panel.dataset.phase;
     const svg = panel.querySelector('svg');
     if(svg){
