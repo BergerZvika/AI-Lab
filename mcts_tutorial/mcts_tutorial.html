@@ -410,6 +410,19 @@ section{margin-bottom:44px}
 .turn-btn.active.o{background:rgba(255,107,107,.2);border-color:var(--coral);
   box-shadow:0 0 22px rgba(255,107,107,.4),inset 0 0 0 1px rgba(255,107,107,.4);text-shadow:0 0 14px rgba(255,107,107,.6)}
 .nim-take-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.ttt-board.go{width:min(560px,96vw);gap:0;padding:16px;background:linear-gradient(145deg,#e9c277,#d6a23f);
+  border:1.5px solid #a9781f;border-radius:6px;box-shadow:0 18px 44px -14px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.12)}
+.ttt-board.go .ttt-cell{border-radius:0;background:transparent;border:none;box-shadow:none;font-size:0;position:relative;aspect-ratio:1}
+.ttt-board.go .ttt-cell::before{content:"";position:absolute;left:0;top:50%;width:100%;height:1.3px;transform:translateY(-50%);background:rgba(60,40,12,.7)}
+.ttt-board.go .ttt-cell::after{content:"";position:absolute;top:0;left:50%;width:1.3px;height:100%;transform:translateX(-50%);background:rgba(60,40,12,.7)}
+.ttt-board.go .ttt-cell .idx,.ttt-board.go .ttt-cell span:not(.idx){display:none}
+.ttt-board.go .ttt-cell.x>.stone-x,.ttt-board.go .ttt-cell.o>.stone-o{}
+.ttt-board.go .ttt-cell.x,.ttt-board.go .ttt-cell.o{}
+.ttt-board.go .ttt-cell.x>span:last-child,.ttt-board.go .ttt-cell.o>span:last-child{display:block;position:absolute;inset:7%;border-radius:50%;z-index:2;font-size:0}
+.ttt-board.go .ttt-cell.x>span:last-child{background:radial-gradient(circle at 34% 30%,#707070,#040404 70%);box-shadow:0 1px 2px rgba(0,0,0,.6)}
+.ttt-board.go .ttt-cell.o>span:last-child{background:radial-gradient(circle at 34% 30%,#ffffff,#c6c6c6 72%);box-shadow:0 1px 2px rgba(0,0,0,.45)}
+.ttt-board.go .ttt-cell:hover:not(.taken):not(.disabled){cursor:pointer}
+.ttt-board.go .ttt-cell:hover:not(.taken):not(.disabled)>span:last-child{display:block;position:absolute;inset:20%;border-radius:50%;background:rgba(0,0,0,.16);z-index:2}
 .btn-take{padding:10px 22px;font-family:'JetBrains Mono',monospace;font-size:.86rem;
   font-weight:700;letter-spacing:.5px;border-radius:10px;border:1.5px solid rgba(255,212,59,.5);
   background:linear-gradient(135deg,rgba(255,212,59,.18),rgba(255,212,59,.06));color:var(--gold);
@@ -1468,6 +1481,7 @@ section{margin-bottom:44px}
           <button class="game-btn active" data-game="ttt" onclick="tvSwitchGame('ttt')">Tic-Tac-Toe 3×3</button>
           <button class="game-btn" data-game="c4" onclick="tvSwitchGame('c4')">Connect Four 7×6</button>
           <button class="game-btn" data-game="nim" onclick="tvSwitchGame('nim')">Nim-21</button>
+          <button class="game-btn" data-game="go" onclick="tvSwitchGame('go')">Go 19×19</button>
         </div>
         <div class="turn-toggle">
           <span class="lbl">Turn</span>
@@ -1482,6 +1496,7 @@ section{margin-bottom:44px}
             <button class="btn btn-take" data-take="2" onclick="tvNimTake(2)">Take 2</button>
             <button class="btn btn-take" data-take="3" onclick="tvNimTake(3)">Take 3</button>
           </div>
+          <div class="nim-take-row" id="tv-go-pass" style="display:none"><button class="btn btn-take" onclick="tvGoPass()">Pass ●</button></div>
           <div class="ttt-controls">
             <button class="btn btn-primary" onclick="tvLoadPreset('empty')">↻ New game</button>
             <button class="btn btn-secondary" data-ttt-only onclick="tvLoadPreset('immediate_win')">X-can-win</button>
@@ -1572,6 +1587,7 @@ section{margin-bottom:44px}
         <button class="game-btn active" data-game="ttt" onclick="playSwitchGame('ttt')">Tic-Tac-Toe 3×3</button>
         <button class="game-btn" data-game="c4" onclick="playSwitchGame('c4')">Connect Four 7×6</button>
         <button class="game-btn" data-game="nim" onclick="playSwitchGame('nim')">Nim-21</button>
+        <button class="game-btn" data-game="go" onclick="playSwitchGame('go')">Go 19×19</button>
       </div>
 
       <div class="layout-2col" style="align-items:start">
@@ -1584,6 +1600,7 @@ section{margin-bottom:44px}
               <button class="btn btn-take" data-take="2" onclick="playHumanNimTake(2)">Take 2</button>
               <button class="btn btn-take" data-take="3" onclick="playHumanNimTake(3)">Take 3</button>
             </div>
+            <div class="nim-take-row" id="play-go-pass" style="display:none"><button class="btn btn-take" onclick="playHumanGoPass()">Pass ●</button></div>
             <div class="ttt-controls">
               <button class="btn btn-sim" onclick="playReset(true)">↻ MCTS plays first</button>
               <button class="btn btn-gold" onclick="playReset(false)">↻ You play first</button>
@@ -2158,7 +2175,57 @@ const GAMES={
       }
       return null;
     }
-  }
+  },
+  go:(function(){
+    var N=19, NN=361, PASS=361, KO=361, PI=362, PLY=363, CAP=200, KOMI=7.5;
+    function nbrs(i){ var r=(i/N)|0,c=i%N,o=[]; if(r>0)o.push(i-N); if(r<N-1)o.push(i+N); if(c>0)o.push(i-1); if(c<N-1)o.push(i+1); return o; }
+    function group(bd,i){ var col=bd[i],seen={},st=[i],libs={},gl=[]; seen[i]=1;
+      while(st.length){ var x=st.pop(); gl.push(x); var ns=nbrs(x);
+        for(var k=0;k<ns.length;k++){ var n=ns[k]; if(bd[n]===0) libs[n]=1; else if(bd[n]===col && !seen[n]){ seen[n]=1; st.push(n);} } }
+      return {stones:gl, libN:Object.keys(libs).length}; }
+    function isLegal(bd,i,p){
+      if(bd[i]!==0 || i===bd[KO]) return false;
+      var ns=nbrs(i),k;
+      for(k=0;k<ns.length;k++) if(bd[ns[k]]===0) return true;
+      for(k=0;k<ns.length;k++) if(bd[ns[k]]===p  && group(bd,ns[k]).libN>1) return true;
+      for(k=0;k<ns.length;k++) if(bd[ns[k]]===-p && group(bd,ns[k]).libN===1) return true;
+      return false;
+    }
+    return {
+      id:'go', name:'Go 19×19', cols:19, rows:19, winLen:0, actionType:'cell', cellCount:361,
+      initBoard:function(){ var a=new Array(364); for(var i=0;i<364;i++) a[i]=0; a[KO]=-1; return a; },
+      getLegal:function(bd,p){ p=p||1; if((bd[PLY]||0)>=CAP) return [PASS];
+        var out=[]; for(var i=0;i<NN;i++) if(isLegal(bd,i,p)) out.push(i); out.push(PASS); return out; },
+      applyAction:function(bd,a,p){
+        var b=bd.slice(); b[PLY]=(bd[PLY]||0)+1;
+        if(a===PASS){ b[PI]=(bd[PI]||0)+1; b[KO]=-1; return b; }
+        if(bd[a]!==0){ b[PI]=(bd[PI]||0)+1; b[KO]=-1; return b; }
+        b[a]=p; var capd=[],ns=nbrs(a),k,s;
+        for(k=0;k<ns.length;k++){ var n=ns[k]; if(b[n]===-p){ var g=group(b,n); if(g.libN===0){ for(s=0;s<g.stones.length;s++){ b[g.stones[s]]=0; capd.push(g.stones[s]); } } } }
+        var mg=group(b,a);
+        if(mg.libN===0 && capd.length===0){ // suicide -> treat as pass (shouldn't reach via getLegal)
+          var pb=bd.slice(); pb[PLY]=(bd[PLY]||0)+1; pb[PI]=(bd[PI]||0)+1; pb[KO]=-1; return pb; }
+        b[PI]=0;
+        if(capd.length===1 && mg.stones.length===1 && mg.libN===1) b[KO]=capd[0]; else b[KO]=-1;
+        return b;
+      },
+      getWinResult:function(state){
+        var bd=state.board; if((bd[PI]||0)<2) return null;
+        var bs=0,ws=0,i; for(i=0;i<NN;i++){ if(bd[i]===1)bs++; else if(bd[i]===-1)ws++; }
+        var seen={},bt=0,wt=0;
+        for(i=0;i<NN;i++){ if(bd[i]!==0||seen[i]) continue;
+          var st=[i],reg=[],bb=false,wb=false; seen[i]=1;
+          while(st.length){ var x=st.pop(); reg.push(x); var ns=nbrs(x);
+            for(var k=0;k<ns.length;k++){ var n=ns[k]; var v=bd[n];
+              if(v===1) bb=true; else if(v===-1) wb=true;
+              else if(v===0 && !seen[n]){ seen[n]=1; st.push(n);} } }
+          if(bb&&!wb) bt+=reg.length; else if(wb&&!bb) wt+=reg.length;
+        }
+        var black=bs+bt, white=ws+wt+KOMI;
+        return { winner: black>white?1:-1, line:[], score:{black:black, white:white} };
+      }
+    };
+  })()
 };
 function gameOf(s){ return GAMES[(s&&s.game)||'ttt']; }
 
@@ -2169,7 +2236,7 @@ function newState(board,player,game){
   const g=GAMES[game||'ttt'];
   return {board: board ? board.slice() : g.initBoard(), player: player||1, game: g.id};
 }
-function getLegal(s){ return gameOf(s).getLegal(s.board); }
+function getLegal(s){ return gameOf(s).getLegal(s.board, s.player); }
 function getWinner(s){ const r=gameOf(s).getWinResult(s); return r? r.winner : null; }
 function isTerminal(s){ return gameOf(s).getWinResult(s)!==null; }
 function applyAction(s,a){
@@ -2293,6 +2360,7 @@ function renderBoard(elId,state,opts){
   el.classList.toggle('c4',  isC4);
   el.classList.toggle('nim', isNim);
   el.classList.toggle('ttt', !isC4 && !isNim);
+  el.classList.toggle('go', game.id==='go');
   if(isNim){
     el.style.display='flex';
     el.style.gridTemplateColumns='';
@@ -2722,6 +2790,18 @@ function tvNimTake(n){
   if(typeof tsInvalidate==='function') tsInvalidate();
 }
 
+function tvGoPass(){
+  const game=GAMES[tvState.game||'ttt'];
+  if(game.id!=='go') return;
+  const wr=game.getWinResult(tvState);
+  if(wr && (wr.winner===1||wr.winner===-1)) return;
+  tvState=applyAction(tvState,361);
+  tvState.placeAs=tvState.player;
+  tvRenderBoard();
+  tvClearResult();
+  if(typeof tsInvalidate==='function') tsInvalidate();
+}
+
 function tvSwitchGame(g){
   if(!GAMES[g] || g===tvState.game) return;
   tvState={board:GAMES[g].initBoard(), player:1, placeAs:1, game:g};
@@ -2734,6 +2814,8 @@ function tvSwitchGame(g){
   // Show Take buttons only for Nim
   const nimRow=document.getElementById('tv-nim-take');
   if(nimRow) nimRow.style.display = (g==='nim') ? '' : 'none';
+  const tvGoRow=document.getElementById('tv-go-pass');
+  if(tvGoRow) tvGoRow.style.display = (g==='go') ? '' : 'none';
   // Swap turn-toggle labels per game
   const xBtn=document.getElementById('tv-turn-x'), oBtn=document.getElementById('tv-turn-o');
   if(xBtn){
@@ -3493,6 +3575,8 @@ function playSwitchGame(g){
   // Show/hide Nim Take buttons
   const nimRow=document.getElementById('play-nim-take');
   if(nimRow) nimRow.style.display = (g==='nim') ? '' : 'none';
+  const goRow=document.getElementById('play-go-pass');
+  if(goRow) goRow.style.display = (g==='go') ? '' : 'none';
   playReset(true);
 }
 
@@ -3543,6 +3627,11 @@ function playRender(){
       if(b) b.disabled = !myTurn || remaining<n;
     });
   }
+  if(playGame==='go'){
+    const myTurn=(playState.player===-playMctsPlayer)&&!playLocked&&!isTerminal(playState);
+    const gb=document.querySelector('#play-go-pass .btn-take');
+    if(gb) gb.disabled=!myTurn;
+  }
 }
 
 async function playHumanMove(action){
@@ -3558,6 +3647,10 @@ async function playHumanMove(action){
     const remaining = playState.board.reduce((s,v)=>s+v, 0);
     if(action<1 || action>3 || remaining<action) return;
   }
+  if(playGame==='go' && action!==361){
+    if(playState.board[action]!==0) return;
+    if(!getLegal(playState).includes(action)) return;
+  }
   playState=applyAction(playState, action);
   playRender();
   if(playCheckEnd()) return;
@@ -3565,6 +3658,7 @@ async function playHumanMove(action){
 }
 
 function playHumanNimTake(n){ playHumanMove(n); }
+function playHumanGoPass(){ playHumanMove(361); }
 
 async function playMctsMove(){
   if(playState.player!==playMctsPlayer) return;
