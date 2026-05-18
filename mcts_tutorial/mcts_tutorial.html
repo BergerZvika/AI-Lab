@@ -3379,6 +3379,7 @@ function tsDrawTree(opts){
     const by=p.y-halfH+pad;
     const isC4here  = ng.actionType==='column';
     const isNimHere = ng.actionType==='take';
+    const isGoHere  = ng.id==='go';
 
     let cellsHtml='';
     if(isNimHere){
@@ -3404,6 +3405,12 @@ function tsDrawTree(opts){
           const v=n.state.board[i];
           if(v===1)       cellsHtml += `<circle cx="${cx+cellW/2}" cy="${cy+cellH/2}" r="${rr-1}" fill="#9ec5ff"/>`;
           else if(v===-1) cellsHtml += `<circle cx="${cx+cellW/2}" cy="${cy+cellH/2}" r="${rr-1}" fill="#ffb0b0"/>`;
+        } else if(isGoHere){
+          cellsHtml += `<rect x="${cx+0.4}" y="${cy+0.4}" width="${cellW-0.8}" height="${cellH-0.8}" fill="#d6a23f" stroke="rgba(60,40,12,.5)" stroke-width="0.4"/>`;
+          const v=n.state.board[i];
+          const rr=Math.min(cellW,cellH)*0.40;
+          if(v===1)       cellsHtml += `<circle cx="${cx+cellW/2}" cy="${cy+cellH/2}" r="${rr}" fill="#0a0a0a" stroke="rgba(255,255,255,.22)" stroke-width="0.3"/>`;
+          else if(v===-1) cellsHtml += `<circle cx="${cx+cellW/2}" cy="${cy+cellH/2}" r="${rr}" fill="#f3f3f3" stroke="rgba(0,0,0,.35)" stroke-width="0.3"/>`;
         } else {
           cellsHtml += `<rect x="${cx+0.5}" y="${cy+0.5}" width="${cellW-1}" height="${cellH-1}" fill="rgba(0,0,0,.32)" stroke="rgba(255,255,255,.22)" stroke-width="0.5"/>`;
           const v=n.state.board[i];
@@ -3485,7 +3492,8 @@ function tsRolloutSvg(state,x,y,reward){
   const g = GAMES[(state&&state.game)||'ttt'];
   const isC4  = g.actionType==='column';
   const isNim = g.actionType==='take';
-  const cellSize = isNim ? 10 : (isC4 ? 18 : 26);
+  const isGo  = g.id==='go';
+  const cellSize = isNim ? 10 : (isC4 ? 18 : (isGo ? 12 : 26));
   const w=getWinner(state);
   const col = w===1?'#4f8ef7':(w===-1?'#ff6b6b':'#ffd43b');
   let cells='';
@@ -3507,6 +3515,12 @@ function tsRolloutSvg(state,x,y,reward){
         const v=state.board[i];
         if(v===1)      cells+=`<circle cx="${cx+cellSize/2-2}" cy="${cy+cellSize/2-2}" r="${rr-1}" fill="#4f8ef7"/>`;
         else if(v===-1)cells+=`<circle cx="${cx+cellSize/2-2}" cy="${cy+cellSize/2-2}" r="${rr-1}" fill="#ff6b6b"/>`;
+      } else if(isGo){
+        cells+=`<rect x="${cx}" y="${cy}" width="${cellSize-4}" height="${cellSize-4}" fill="#d6a23f" stroke="rgba(60,40,12,.5)" stroke-width="0.4"/>`;
+        const v=state.board[i];
+        const rr=(cellSize-4)*0.40;
+        if(v===1) cells+=`<circle cx="${cx+(cellSize-4)/2}" cy="${cy+(cellSize-4)/2}" r="${rr}" fill="#0a0a0a" stroke="rgba(255,255,255,.22)" stroke-width="0.3"/>`;
+        else if(v===-1) cells+=`<circle cx="${cx+(cellSize-4)/2}" cy="${cy+(cellSize-4)/2}" r="${rr}" fill="#f3f3f3" stroke="rgba(0,0,0,.35)" stroke-width="0.3"/>`;
       } else {
         cells+=`<rect x="${cx}" y="${cy}" width="${cellSize-4}" height="${cellSize-4}" rx="3" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.18)" stroke-width="0.7"/>`;
         const v=state.board[i];
