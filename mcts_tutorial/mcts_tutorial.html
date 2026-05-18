@@ -2743,8 +2743,9 @@ function tvRenderBoard(){
   }
   // Status text
   const st=document.getElementById('tv-status');
-  const nameP1 = isNim ? 'Player 1' : (isC4 ? 'Blue' : 'X');
-  const nameP2 = isNim ? 'Player 2' : (isC4 ? 'Red'  : 'O');
+  const isGo = (tvState.game==='go');
+  const nameP1 = isNim ? 'Player 1' : (isC4 ? 'Blue' : (isGo ? 'Black' : 'X'));
+  const nameP2 = isNim ? 'Player 2' : (isC4 ? 'Red'  : (isGo ? 'White' : 'O'));
   if(win){
     const who = win.winner===1 ? nameP1 : nameP2;
     st.innerHTML=`<strong>${who} wins!</strong> · click <em>↻ New game</em> to start over`;
@@ -3217,7 +3218,7 @@ async function tsDoSimulation(){
   const w=getWinner(s);
   const reward = w===1?1.0:(w===-1?0.0:0.5);
   tsLastReward=reward;
-  const outcome = w===1?'X wins':(w===-1?'O wins':'draw');
+  const outcome = w===1?(s.game==='go'?'Black wins':'X wins'):(w===-1?(s.game==='go'?'White wins':'O wins'):'draw');
   tsDrawTree({selectionPath:tsPath,activeIdx:tsPath.length-1,simulating:true,rolloutState:s,reward});
   tsLog('simulate',`random rollout of <b>${len}</b> move(s) → <b>${outcome}</b> (r=${reward.toFixed(1)} for P1)`);
   await tsSleep(900);
@@ -3531,6 +3532,7 @@ function tsRolloutSvg(state,x,y,reward){
   }
   let lbl;
   if(isNim) lbl = w===1?'P1 WINS':(w===-1?'P2 WINS':'DRAW');
+  else if(g.id==='go') lbl = w===1?'BLACK WINS':(w===-1?'WHITE WINS':'DRAW');
   else      lbl = w===1?'X WINS' :(w===-1?'O WINS' :'DRAW');
   const bw = cellSize*g.cols + 12;
   const bh = cellSize*g.rows + 38;
@@ -3563,6 +3565,7 @@ function playUpdateLabel(){
 function _playName(p){
   if(playGame==='c4')  return p===1?'Blue':'Red';
   if(playGame==='nim') return p===1?'P1':'P2';
+  if(playGame==='go')  return p===1?'Black':'White';
   return p===1?'X':'O';
 }
 function _playColor(p){ return p===1?'blue':'coral'; }
