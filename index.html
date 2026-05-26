@@ -105,6 +105,7 @@ h1.title{font-size:clamp(2.6rem,6vw,4.6rem);font-weight:800;line-height:1.05;let
 .lab-rl      {--accent:#00d4aa;--accent-glow:rgba(0,212,170,.55)}
 .lab-mcts    {--accent:#b06eff;--accent-glow:rgba(176,110,255,.55)}
 .lab-drl     {--accent:#ffd43b;--accent-glow:rgba(255,212,59,.55)}
+.lab-shap    {--accent:#f783ac;--accent-glow:rgba(247,131,172,.55)}
 
 /* ── FOOTER ── */
 footer{text-align:center;margin-top:80px;padding:30px 20px;color:var(--muted);font-size:.78rem;letter-spacing:1.2px}
@@ -204,6 +205,31 @@ footer a:hover{color:#fff}
       </div>
       <h2>MCTS<span class="sub">Monte Carlo Tree Search</span></h2>
       <p>The algorithm behind AlphaGo. Selection, Expansion, Simulation, Backpropagation — see how UCB1 builds an asymmetric tree, then play Tic-Tac-Toe against a live MCTS agent.</p>
+      <span class="open">Open lab <span class="arrow">→</span></span>
+    </a>
+
+    <a class="lab-card lab-shap" href="shapley_tutorial/shapley_tutorial.html">
+      <span class="badge">04 · Cooperative Game Theory</span>
+      <div class="icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- three player nodes forming a coalition -->
+          <circle cx="8"  cy="10" r="2.4" fill="currentColor" fill-opacity=".25"/>
+          <circle cx="24" cy="10" r="2.4" fill="currentColor" fill-opacity=".25"/>
+          <circle cx="16" cy="24" r="2.4" fill="currentColor" fill-opacity=".25"/>
+          <!-- coalition triangle -->
+          <path d="M8 10 L24 10 L16 24 Z" stroke-dasharray="2.5 2.5"/>
+          <!-- share splits φ -->
+          <path d="M16 15 L8 10"/>
+          <path d="M16 15 L24 10"/>
+          <path d="M16 15 L16 24"/>
+          <!-- centroid dot -->
+          <circle cx="16" cy="15" r="1.8" fill="currentColor"/>
+          <!-- φ label -->
+          <text x="16" y="6" text-anchor="middle" fill="currentColor" font-family="JetBrains Mono" font-size="6" font-weight="700">φ</text>
+        </svg>
+      </div>
+      <h2>Coalitions<span class="sub">Labs for Game Theory</span></h2>
+      <p>Who deserves what when players cooperate? The Shapley value — the only fair split satisfying four natural axioms. Coalition-building, voting power, UN Security Council, airport cost-sharing, and SHAP for ML interpretability.</p>
       <span class="open">Open lab <span class="arrow">→</span></span>
     </a>
 
