@@ -1084,9 +1084,25 @@ section{margin-bottom:44px}
 .sxs-mc-pos{color:var(--teal)} .sxs-mc-neg{color:var(--coral)} .sxs-mc-zero{color:var(--muted)}
 .sxs-foot{margin-top:10px;font-size:.74rem;color:var(--muted);font-style:italic;line-height:1.55;
   padding:10px 12px;background:rgba(255,255,255,.02);border-radius:6px}
+
+/* Floating link back to the AI-Lab landing page */
+.home-back{position:fixed;top:14px;left:14px;z-index:9999;display:inline-flex;align-items:center;gap:7px;
+  padding:8px 14px 8px 12px;border-radius:30px;background:rgba(13,15,30,.85);backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.10);color:#e8eaf6;
+  font-family:'Syne',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:1.6px;
+  text-decoration:none;text-transform:uppercase;transition:all .25s}
+.home-back:hover{border-color:#f783ac;color:#f783ac;box-shadow:0 0 28px rgba(247,131,172,.4);transform:translateY(-2px)}
+.home-back svg{width:13px;height:13px}
 </style>
 </head>
 <body>
+
+<a href="../index.html" class="home-back" title="Back to AI-Lab home">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 12 H 5"/><path d="M12 5 L 5 12 L 12 19"/>
+  </svg>
+  AI-Lab
+</a>
 
 <div class="progress-bar" id="progress" style="width:10%"></div>
 <canvas id="particles"></canvas>
