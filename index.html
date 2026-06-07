@@ -105,6 +105,7 @@ h1.title{font-size:clamp(2.6rem,6vw,4.6rem);font-weight:800;line-height:1.05;let
 .lab-rl      {--accent:#00d4aa;--accent-glow:rgba(0,212,170,.55)}
 .lab-mcts    {--accent:#b06eff;--accent-glow:rgba(176,110,255,.55)}
 .lab-drl     {--accent:#ffd43b;--accent-glow:rgba(255,212,59,.55)}
+.lab-ac      {--accent:#ffd43b;--accent-glow:rgba(255,212,59,.55)}
 .lab-shap    {--accent:#f783ac;--accent-glow:rgba(247,131,172,.55)}
 .lab-auct    {--accent:#51cf66;--accent-glow:rgba(81,207,102,.55)}
 
@@ -216,10 +217,38 @@ footer a:hover{color:#fff}
       <span class="open">Open lab <span class="arrow">→</span></span>
     </a>
 
+    <a class="lab-card lab-ac" href="actor_critic_tutorial/actor_critic_tutorial.html">
+      <span class="badge">04 · Policy Optimisation</span>
+      <div class="icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- actor network (left) -->
+          <circle cx="6"  cy="8"  r="1.5" fill="currentColor"/>
+          <circle cx="6"  cy="16" r="1.5" fill="currentColor"/>
+          <circle cx="6"  cy="24" r="1.5" fill="currentColor"/>
+          <circle cx="13" cy="11" r="1.5" fill="currentColor"/>
+          <circle cx="13" cy="21" r="1.5" fill="currentColor"/>
+          <path d="M6 8 L13 11"/><path d="M6 16 L13 11"/><path d="M6 16 L13 21"/><path d="M6 24 L13 21"/>
+          <!-- π output -->
+          <text x="15" y="17" fill="currentColor" font-family="JetBrains Mono" font-size="6" font-weight="700">π</text>
+          <!-- arrow -->
+          <path d="M19 16 L22 16" stroke-width="1.4"/>
+          <path d="M21 14 L23 16 L21 18" stroke-width="1.4"/>
+          <!-- critic network (right) -->
+          <circle cx="26" cy="11" r="1.5" fill="currentColor" fill-opacity=".25"/>
+          <circle cx="26" cy="16" r="1.5" fill="currentColor" fill-opacity=".25"/>
+          <circle cx="26" cy="21" r="1.5" fill="currentColor" fill-opacity=".25"/>
+          <text x="24" y="29" fill="currentColor" font-family="JetBrains Mono" font-size="6" font-weight="700" opacity=".7">V</text>
+        </svg>
+      </div>
+      <h2>Actor-Critic<span class="sub">REINFORCE → A2C → PPO → SAC</span></h2>
+      <p>The natural sequel to Deep RL. Why DQN can't drive a car, why REINFORCE is so noisy, how Actor-Critic, A2C, A3C, PPO, DDPG and SAC each fix the next problem. Two playable envs included.</p>
+      <span class="open">Open lab <span class="arrow">→</span></span>
+    </a>
+
     <div class="grid-section"><span class="gs-label"><span class="gs-dot"></span>Game Theory</span></div>
 
     <a class="lab-card lab-shap" href="shapley_tutorial/shapley_tutorial.html">
-      <span class="badge">04 · Cooperative Game Theory</span>
+      <span class="badge">05 · Cooperative Game Theory</span>
       <div class="icon">
         <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <!-- three player nodes forming a coalition -->
@@ -244,7 +273,7 @@ footer a:hover{color:#fff}
     </a>
 
     <a class="lab-card lab-auct" href="auction_tutorial/auction_tutorial.html">
-      <span class="badge">05 · Mechanism Design</span>
+      <span class="badge">06 · Mechanism Design</span>
       <div class="icon">
         <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <!-- gavel head (rotated block) -->
@@ -258,7 +287,7 @@ footer a:hover{color:#fff}
         </svg>
       </div>
       <h2>Auctions<span class="sub">Bidding &amp; Mechanism Design</span></h2>
-      <p>Same bidders, different rules — different winners and prices. English, Dutch, First-Price, Vickrey, All-Pay, VCG. The Revenue Equivalence Theorem, the winner's curse, and the mechanism behind Google Ads.</p>
+      <p>Same bidders, different rules — different winners and prices. English, Dutch, First-Price, Vickrey, All-Pay, VCG. The Revenue Equivalence Theorem with a live Monte-Carlo. The mechanism behind Google Ads.</p>
       <span class="open">Open lab <span class="arrow">→</span></span>
     </a>
 
