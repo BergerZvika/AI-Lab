@@ -878,7 +878,6 @@ section{margin-bottom:44px}
 
     <div class="viz-ctrl" style="justify-content:center;margin-bottom:14px;gap:8px">
       <button class="mini-btn on" id="sgTab-rps" onclick="sgShow('rps')">✊ Rock-Paper-Scissors</button>
-      <button class="mini-btn" id="sgTab-poker" onclick="sgShow('poker')">🂡 Poker · bluffing</button>
       <button class="mini-btn" id="sgTab-clean" onclick="sgShow('clean')">🛰 Space cleaner robot</button>
       <button class="mini-btn" id="sgTab-pennies" onclick="sgShow('pennies')">🪙 Matching pennies</button>
     </div>
@@ -909,29 +908,6 @@ section{margin-bottom:44px}
       </div>
     </div>
 
-    <!-- ── POKER ── -->
-    <div class="sg-game" id="sg-poker" style="display:none">
-      <div class="env-stage">
-        <div class="env-host" style="padding:10px"><canvas id="pkrCanvas" width="760" height="320"></canvas></div>
-        <div class="env-controls" style="flex-wrap:wrap">
-          <span style="color:var(--muted);font-size:.72rem;letter-spacing:1px;text-transform:uppercase">Opponent</span>
-          <div class="policy-pick" id="pkrOppPick">
-            <button class="on" data-opp="det" onclick="PKR.setOpp(this,'det')">🤖 Deterministic</button>
-            <button data-opp="sto" onclick="PKR.setOpp(this,'sto')">🎲 Stochastic</button>
-          </div>
-          <button class="btn btn-sim" id="pkrDealBtn" onclick="PKR.deal()">▶ Deal hand</button>
-          <button class="btn btn-sim" id="pkrCallBtn" onclick="PKR.respond('call')">Call</button>
-          <button class="btn btn-danger" id="pkrFoldBtn" onclick="PKR.respond('fold')">Fold</button>
-          <button class="btn btn-secondary" onclick="PKR.reset()">↺ Reset</button>
-          <span class="env-stat"><span class="lbl">Hand</span><span id="pkrHand">0</span></span>
-          <span class="env-stat"><span class="lbl">Your chips</span><span id="pkrChips">0</span></span>
-        </div>
-      </div>
-      <div class="glass" style="margin-top:14px">
-        <p>Now <b>you</b> play one-card poker against the model. Each antes 1 and is dealt a card — your <b>A = HIGH</b> or <b>7 = LOW</b> is shown, the model's is hidden. The model <b>bets</b> or <b>checks</b>; if it bets, you choose <b>Call</b> or <b>Fold</b>; if it checks, it goes straight to showdown (higher card wins).</p>
-        <p>Against the <b style="color:var(--coral)">Deterministic</b> model a <b>bet always means HIGH</b> — read it and fold your weak hands; it can never bluff you or get paid off, so it <b style="color:var(--green)">can't profit</b>. Against the <b style="color:var(--teal)">Stochastic</b> model a bet might be a real hand <em>or</em> a ⅓ bluff — you can't tell, so it wins from your folds and your calls alike. Mixing actions is a stochastic policy, and it's <b>unexploitable</b>.</p>
-      </div>
-    </div>
 
     <!-- ── CLEANER ROBOT ── -->
     <div class="sg-game" id="sg-clean" style="display:none">
@@ -1387,7 +1363,7 @@ section{margin-bottom:44px}
   </section>
 
   <section>
-    <div class="section-title">DDPG's three methods — tap a card to flip</div>
+    <div class="section-title">DDPG's three methods</div>
     <div class="glass" style="margin-bottom:14px">
       <p>Because the policy is deterministic and the updates use bootstrapped Q-targets, the data <em>doesn't have to come from the current policy</em> — so DDPG can borrow three off-policy stabilisers. <b>Tap each card</b> for how it works.</p>
     </div>
@@ -1552,7 +1528,7 @@ replay buffer 𝓓 ← ∅
   </section>
 
   <section>
-    <div class="section-title">Three tricks, one stable algorithm — tap a card to flip</div>
+    <div class="section-title">Three tricks, one stable algorithm</div>
     <div class="flip-grid">
       <div class="flip-card fc-teal" onclick="this.classList.toggle('flipped')"><div class="flip-inner">
         <div class="flip-front"><div class="flip-symbol">min(Q₁,Q₂)</div><div class="flip-name">① Twin double-Q</div></div>
@@ -1628,6 +1604,28 @@ replay buffer 𝓓 ← ∅ ;  t ← <span class="num">0</span>
                                   └──── entropy bonus, every step ────┘
 
     "act as well as possible — and remain as random as possible while doing it"</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">SAC's key ideas</div>
+    <div class="flip-grid">
+      <div class="flip-card fc-teal" onclick="this.classList.toggle('flipped')"><div class="flip-inner">
+        <div class="flip-front"><div class="flip-symbol">α·H[π]</div><div class="flip-name">Entropy bonus</div></div>
+        <div class="flip-back"><div class="flip-back-title">Exploration, by design</div><div class="flip-back-desc">Reward = return <b>+ α·H[π]</b>. Paying the agent for being <b>random</b> (high entropy) keeps it exploring and stops σ collapsing to 0 — exploration is built into the objective, not bolted on.</div></div>
+      </div></div>
+      <div class="flip-card fc-coral" onclick="this.classList.toggle('flipped')"><div class="flip-inner">
+        <div class="flip-front"><div class="flip-symbol">2 × Q</div><div class="flip-name">Twin critics</div></div>
+        <div class="flip-back"><div class="flip-back-title">Take the min</div><div class="flip-back-desc">Learn <b>two</b> Q-networks and use <b>min(Q₁, Q₂)</b> as the target. The smaller estimate under-shoots, killing the overestimation bias (borrowed from TD3).</div></div>
+      </div></div>
+      <div class="flip-card fc-purple" onclick="this.classList.toggle('flipped')"><div class="flip-inner">
+        <div class="flip-front"><div class="flip-symbol">α<sup>*</sup></div><div class="flip-name">Auto-tuned α</div></div>
+        <div class="flip-back"><div class="flip-back-title">Learn the temperature</div><div class="flip-back-desc">α isn't a hand-set knob — it's a <b>learned parameter</b>, gradient-descended to hold the policy's entropy at a target H<sub>target</sub> = −|A|. High early, low late.</div></div>
+      </div></div>
+      <div class="flip-card fc-gold" onclick="this.classList.toggle('flipped')"><div class="flip-inner">
+        <div class="flip-front"><div class="flip-symbol">μ,σ → a</div><div class="flip-name">Actor output → action</div></div>
+        <div class="flip-back"><div class="flip-back-title">Squashed Gaussian</div><div class="flip-back-desc">The actor outputs a <b>mean μ(s)</b> and <b>std σ(s)</b>. Sample noise ε ∼ 𝒩(0,1), form n = μ + σ·ε, then squash: <b>a = tanh(n)</b> — into the valid action range. (Reparam trick lets ∇ flow through the sample.)</div></div>
+      </div></div>
     </div>
   </section>
 
@@ -2900,75 +2898,6 @@ const RPS2={opp:'det',timer:null,round:0,score:0,mc:[0,0,0],hist:[],last:null,
   }
 };
 
-/* ── 2 · Interactive one-card poker — YOU vs the model ───────── */
-function pkrCardFace(ctx,x,y,w,h,type,faceUp){
-  if(!faceUp){
-    ctx.fillStyle='#13284a'; sgRoundRect(ctx,x,y,w,h,8); ctx.fill();
-    ctx.strokeStyle='#2a4a7a'; ctx.lineWidth=2; ctx.stroke();
-    ctx.fillStyle='#3a5a8a'; ctx.font="bold 30px 'JetBrains Mono'"; ctx.textAlign='center'; ctx.fillText('?',x+w/2,y+h/2+11);
-    return;
-  }
-  ctx.fillStyle='#ece3cf'; sgRoundRect(ctx,x,y,w,h,8); ctx.fill();
-  ctx.strokeStyle='#b9ad8a'; ctx.lineWidth=2; ctx.stroke();
-  const rank=type==='H'?'A':'7';
-  ctx.fillStyle='#1a1a2a'; ctx.textAlign='left'; ctx.font="bold 18px serif"; ctx.fillText(rank,x+8,y+22); ctx.font="13px serif"; ctx.fillText('♠',x+9,y+37);
-  ctx.textAlign='center'; ctx.font="bold 40px serif"; ctx.fillText(rank,x+w/2,y+h/2+12);
-  ctx.fillStyle=type==='H'?SG_C.gold:'#8a8fb0'; ctx.globalAlpha=.92; sgRoundRect(ctx,x+8,y+h-26,w-16,17,5); ctx.fill(); ctx.globalAlpha=1;
-  ctx.fillStyle='#10131f'; ctx.font="bold 9px 'JetBrains Mono'"; ctx.textAlign='center'; ctx.fillText(type==='H'?'HIGH':'LOW',x+w/2,y+h-13);
-}
-const PKR={opp:'det',phase:'idle',hand:0,chips:0,hist:[],my:null,mc:null,act:null,bluff:false,res:null,
-  reset(){ this.phase='idle'; this.hand=0; this.chips=0; this.hist=[]; this.my=null; this.mc=null; this.act=null; this.bluff=false; this.res=null; this.draw(); this.buttons(); },
-  setOpp(b,t){ this.opp=t; if(b){ document.querySelectorAll('#pkrOppPick button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); } this.reset(); },
-  deal(){ if(this.phase==='await') return;
-    this.my=Math.random()<0.5?'H':'L'; this.mc=Math.random()<0.5?'H':'L'; this.bluff=false; this.res=null;
-    if(this.mc==='H') this.act='bet';
-    else if(this.opp==='sto' && Math.random()<1/3){ this.act='bet'; this.bluff=true; } else this.act='check';
-    if(this.act==='check') this.resolve('check');
-    else { this.phase='await'; this.draw(); this.buttons(); }
-  },
-  respond(a){ if(this.phase!=='await') return; this.resolve(a); },
-  resolve(mode){
-    const v=c=>c==='H'?1:0, cmp=v(this.my)-v(this.mc); let delta,txt;
-    if(mode==='fold'){ delta=-1; txt='You FOLD — model takes the pot'; }
-    else if(mode==='check'){ delta=cmp>0?1:cmp<0?-1:0; txt=cmp>0?'Showdown — YOU WIN':cmp<0?'Showdown — you lose':'Showdown — split'; }
-    else { delta=cmp>0?2:cmp<0?-2:0; txt=cmp>0?'You CALL — YOU WIN':cmp<0?'You CALL — you lose':'You CALL — split'; }
-    this.chips+=delta; this.hand++; this.hist.push(this.chips); this.res={txt,delta}; this.phase='shown';
-    this.draw(); this.buttons();
-  },
-  buttons(){ const d=document.getElementById('pkrDealBtn'),cl=document.getElementById('pkrCallBtn'),fo=document.getElementById('pkrFoldBtn'); const aw=this.phase==='await';
-    if(cl) cl.disabled=!aw; if(fo) fo.disabled=!aw; if(d) d.disabled=aw; },
-  draw(){
-    const c=document.getElementById('pkrCanvas'); if(!c) return; const ctx=c.getContext('2d');
-    const W=760,H=320; sgClear(ctx,W,H);
-    ctx.fillStyle='rgba(0,212,170,0.05)'; sgRoundRect(ctx,12,36,486,H-48,16); ctx.fill();
-    ctx.strokeStyle='rgba(0,212,170,0.18)'; ctx.lineWidth=1; ctx.stroke();
-    ctx.textAlign='left'; ctx.font='13px JetBrains Mono'; ctx.fillStyle=SG_C.muted;
-    ctx.fillText(this.opp==='det'?'You vs DETERMINISTIC model — a BET always means HIGH (read it!)':'You vs STOCHASTIC model — a BET might be HIGH or a ⅓ bluff (unreadable)',20,26);
-    const reveal=this.phase==='shown';
-    /* model */
-    ctx.fillStyle=SG_C.coral; ctx.font="bold 11px 'JetBrains Mono'"; ctx.textAlign='center'; ctx.fillText('MODEL',107,58);
-    pkrCardFace(ctx,62,66,90,122,this.mc||'H', reveal && !!this.mc);
-    if(this.act){ ctx.fillStyle=this.act==='bet'?SG_C.gold:SG_C.muted; ctx.font="bold 14px 'JetBrains Mono'"; ctx.textAlign='center'; ctx.fillText(this.act==='bet'?'BET ▲':'CHECK',107,210);
-      if(reveal && this.bluff){ ctx.fillStyle=SG_C.coral; ctx.font="10px 'JetBrains Mono'"; ctx.fillText('was a bluff!',107,226); } }
-    /* you */
-    ctx.fillStyle=SG_C.blue; ctx.font="bold 11px 'JetBrains Mono'"; ctx.textAlign='center'; ctx.fillText('YOU',345,58);
-    pkrCardFace(ctx,300,66,90,122,this.my||'L', !!this.my);
-    if(this.phase==='await'){ ctx.fillStyle=SG_C.gold; ctx.font="bold 12px 'JetBrains Mono'"; ctx.textAlign='center'; ctx.fillText('CALL or FOLD?',345,210); }
-    /* pot / result */
-    ctx.textAlign='center';
-    if(this.res){ const col=this.res.delta>0?SG_C.green:this.res.delta<0?SG_C.coral:SG_C.muted;
-      ctx.fillStyle=col; ctx.font="bold 15px 'JetBrains Mono'"; ctx.fillText(this.res.txt,255,256);
-      ctx.font="bold 18px 'JetBrains Mono'"; ctx.fillText((this.res.delta>0?'+':'')+this.res.delta+' chip'+(Math.abs(this.res.delta)===1?'':'s'),255,282); }
-    else if(this.phase==='await'){ ctx.fillStyle=SG_C.muted; ctx.font="12px 'JetBrains Mono'"; ctx.fillText('the model has BET — your move',255,264); }
-    else { ctx.fillStyle=SG_C.muted; ctx.font="12px 'JetBrains Mono'"; ctx.fillText('press ▶ Deal hand',255,264); }
-    /* right panel */
-    ctx.textAlign='center'; ctx.fillStyle=SG_C.muted; ctx.font="12px 'JetBrains Mono'"; ctx.fillText('your chips',628,58);
-    ctx.font="bold 44px 'JetBrains Mono'"; ctx.fillStyle=this.chips<0?SG_C.coral:this.chips>0?SG_C.green:SG_C.text; ctx.fillText((this.chips>0?'+':'')+this.chips,628,104);
-    sgSpark(ctx,514,132,232,H-146,this.hist,this.chips<0?SG_C.coral:SG_C.green);
-    const h=document.getElementById('pkrHand'),ch=document.getElementById('pkrChips'); if(h)h.textContent=this.hand; if(ch)ch.textContent=(this.chips>0?'+':'')+this.chips;
-  }
-};
-
 /* ── 3 · Space cleaner robot ────────────────── */
 const CLN={mode:null,timer:null,cols:30,rows:14,cleaned:null,rx:0,ry:0,dx:1,dy:0,steps:0,cov:0,
   init(){ this.cleaned=Array.from({length:this.rows},()=>new Array(this.cols).fill(false)); },
@@ -3062,13 +2991,13 @@ const MP={opp:'det',timer:null,round:0,score:0,mh:0,hist:[],last:null,
 };
 
 function sgShow(g){
-  ['rps','poker','clean','pennies'].forEach(k=>{
+  ['rps','clean','pennies'].forEach(k=>{
     const el=document.getElementById('sg-'+k); if(el) el.style.display=(k===g)?'block':'none';
     const tb=document.getElementById('sgTab-'+k); if(tb) tb.classList.toggle('on',k===g);
   });
-  RPS2.reset(); PKR.reset(); CLN.reset(); MP.reset();
+  RPS2.reset(); CLN.reset(); MP.reset();
 }
-setTimeout(()=>{ RPS2.reset(); PKR.reset(); CLN.reset(); MP.reset(); },120);
+setTimeout(()=>{ RPS2.reset(); CLN.reset(); MP.reset(); },120);
 
 /* ═══════════════════════════════════════════
    TD3 · target-policy-smoothing noise — Gaussian vs clipped (tab 07)
