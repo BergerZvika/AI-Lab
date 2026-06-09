@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voting Tutorial — Social Choice &amp; Voting Rules · Interactive Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090f;--bg2:#0e0f1a;--bg3:#141528;
+  --blue:#4f8ef7;--teal:#00d4aa;--coral:#ff6b6b;--gold:#ffd43b;--purple:#b06eff;--green:#51cf66;
+  --text:#e8eaf6;--muted:#7b7fa0;--border:rgba(255,255,255,0.07);--r:14px;
+}
+html,body{background:var(--bg);color:var(--text);font-family:Syne,system-ui,sans-serif}
+body{min-height:100vh;overflow-x:hidden}
+#particles{position:fixed;inset:0;z-index:0;pointer-events:none}
+.progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--coral),var(--gold));z-index:50;transition:width .4s}
+.page-wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 22px 90px}
+.home-back{position:fixed;top:14px;left:14px;z-index:60;display:inline-flex;align-items:center;gap:7px;
+  padding:9px 15px;border-radius:999px;background:var(--bg2);border:1px solid var(--border);
+  color:var(--text);text-decoration:none;font-size:.8rem;font-weight:700;transition:all .2s}
+.home-back:hover{border-color:var(--coral);color:var(--coral)}
+.home-back svg{width:15px;height:15px}
+header{padding:54px 0 26px;text-align:center}
+.chapter-badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.66rem;letter-spacing:2.4px;
+  text-transform:uppercase;color:var(--coral);border:1px solid rgba(255,107,107,.4);padding:5px 12px;border-radius:999px;margin-bottom:16px}
+header h1{font-size:clamp(2.1rem,5vw,3.4rem);font-weight:800;letter-spacing:-1.5px;
+  background:linear-gradient(120deg,#fff,#ffb4b4 60%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{color:var(--muted);font-size:.9rem;margin-top:8px}
+.tab-bar{display:flex;gap:3px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:5px;margin:8px 0 26px;flex-wrap:nowrap;overflow-x:auto;justify-content:center;scrollbar-width:thin}
+.tab-bar::-webkit-scrollbar{height:6px}
+.tab-bar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:6px}
+.tab{flex:0 0 auto;background:transparent;border:0;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.72rem;
+  font-weight:600;padding:8px 11px;border-radius:8px;cursor:pointer;transition:all .2s;white-space:nowrap;letter-spacing:.2px}
+.tab:hover{color:var(--text)}
+.tab.active{background:linear-gradient(135deg,var(--coral),var(--gold));color:#150a0a}
+.panel{display:none;animation:fade .35s ease}
+.panel.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+section{margin-bottom:40px}
+.section-title{font-size:1.18rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:11px}
+.section-title::before{content:'';width:4px;height:19px;border-radius:4px;background:linear-gradient(var(--coral),var(--gold))}
+.glass{background:rgba(255,255,255,0.035);border:1px solid var(--border);border-radius:var(--r);padding:18px 22px;line-height:1.8;font-size:.86rem;color:#c5c8e8}
+.glass p{margin:0 0 11px}.glass p:last-child{margin:0}
+code{font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;font-size:.82em}
+.btn{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.76rem;padding:9px 16px;border-radius:9px;
+  border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;transition:all .2s}
+.btn:hover{border-color:var(--coral);color:var(--coral)}
+.btn.primary{background:linear-gradient(135deg,var(--coral),var(--gold));color:#150a0a;border:0}
+.btn.active{border-color:var(--gold);color:var(--gold)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.muted{color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:.83rem}
+th,td{padding:9px 12px;border-bottom:1px solid var(--border);text-align:left}
+th{font-size:.62rem;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);font-weight:700}
+td.mono,th.mono{font-family:'JetBrains Mono',monospace}
+.cand{display:inline-flex;align-items:center;gap:7px;font-weight:700}
+.dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+.bars{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.barrow{display:grid;grid-template-columns:150px 1fr 56px;align-items:center;gap:12px;font-size:.82rem}
+.bar{height:22px;border-radius:6px;min-width:2px;transition:width .5s ease}
+.win-tag{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:1.05rem;
+  background:rgba(81,207,102,.12);border:1px solid rgba(81,207,102,.4);color:var(--green);
+  padding:8px 16px;border-radius:10px;margin-top:14px}
+.no-win{background:rgba(255,107,107,.1);border-color:rgba(255,107,107,.4);color:var(--coral)}
+.profile-grid{display:flex;flex-direction:column;gap:8px}
+.bloc{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+.stepper{display:inline-flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.stepper button{width:30px;height:30px;background:var(--bg3);border:0;color:var(--text);font-weight:700;cursor:pointer;font-size:1rem}
+.stepper button:hover{background:var(--coral);color:#150a0a}
+.stepper .n{min-width:42px;text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700}
+.order{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pill{font-family:'JetBrains Mono',monospace;font-size:.74rem;font-weight:700;padding:4px 9px;border-radius:6px;color:#0c0c12}
+.sep{color:var(--muted);font-size:.72rem}
+.matrix td,.matrix th{text-align:center;font-family:'JetBrains Mono',monospace}
+.matrix .wcell{background:rgba(81,207,102,.14);color:var(--green);font-weight:800}
+.matrix .lcell{color:var(--muted)}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:6px}
+.sumcard{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.sumcard .m{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+.sumcard .w{font-size:1.05rem;font-weight:800;margin-top:6px;display:flex;align-items:center;gap:8px}
+.round{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:10px}
+.round .rh{font-family:'JetBrains Mono',monospace;font-size:.66rem;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.elim{color:var(--coral);text-decoration:line-through;opacity:.7}
+.nav-footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:24px}
+.scene3d{perspective:1300px;background:radial-gradient(ellipse at 50% 16%,rgba(255,107,107,.09),transparent 60%),linear-gradient(180deg,#0c0d17,#070810);
+  border:1px solid var(--border);border-radius:14px;padding:22px 18px 26px;overflow:hidden}
+.scene3d .scene{transform:rotateX(13deg);transform-origin:center 62%;transition:transform .6s ease;will-change:transform}
+.scene3d:hover .scene{transform:rotateX(0deg)}
+.scene .s-title{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:14px}
+.scene .matrix,.scene table,.scene .summary,.scene .order{animation:fade .3s ease}
+.scene3d{min-height:340px}
+.bar3d{transition:width .55s cubic-bezier(.22,.7,.25,1),background .3s ease}
+.js-profile .bloc.bloc-active{border-color:var(--gold);background:rgba(255,212,59,.08);
+  box-shadow:-3px 0 0 0 var(--gold),0 0 18px -6px rgba(255,212,59,.55);transition:box-shadow .3s,background .3s}
+.js-profile .pill{transition:transform .2s,box-shadow .2s,outline-color .2s}
+.js-profile .pill.vh-a{outline:2px solid #ffd43b;outline-offset:2px;box-shadow:0 0 0 1px #ffd43b,0 0 12px rgba(255,212,59,.75);transform:translateY(-1px) scale(1.05)}
+.js-profile .pill.vh-b{outline:2px solid #4f8ef7;outline-offset:2px;box-shadow:0 0 0 1px #4f8ef7,0 0 12px rgba(79,142,247,.75);transform:translateY(-1px) scale(1.05)}
+@keyframes rowflash{0%{background:rgba(255,212,59,.32)}100%{background:transparent}}
+.scene .barrow.flash{position:relative;border-radius:6px;animation:rowflash 1s ease}
+.scene .barrow.flash::before{content:"";position:absolute;left:-9px;top:3px;bottom:3px;width:3px;border-radius:3px;background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.scene .matrix td.flash{outline:2px solid var(--gold);outline-offset:-2px;color:var(--gold);font-weight:800;animation:rowflash 1s ease}
+.scene table tr.flash td,.scene table tr.flash th{background:rgba(255,212,59,.16);animation:rowflash 1s ease}
+.scene .matrix tr.flash th{color:var(--gold)}
+.scene .sumcard.flash{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 18px -5px rgba(255,212,59,.55);animation:rowflash 1s ease}
+.bar3d{height:24px;border-radius:5px 5px 3px 3px;min-width:2px;transition:width .45s ease;
+  box-shadow:0 9px 16px -7px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.28),inset 0 -3px 6px rgba(0,0,0,.28)}
+.scene .matrix td,.scene .matrix th{font-size:.8rem}
+.stepbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}
+.stepbar .btn{padding:8px 14px}
+.sdots{display:flex;gap:7px;flex-wrap:wrap}
+.sdot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.16);border:0;padding:0;cursor:pointer;transition:transform .2s,background .2s}
+.sdot.on{background:var(--gold);transform:scale(1.35)}
+.slabel{font-family:'JetBrains Mono',monospace;font-size:.74rem;color:var(--muted)}
+.slabel b{color:var(--text)}
+.votes-box{margin-bottom:14px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.vlabel{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
+.cinput{width:64px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.9rem;padding:7px 8px;border-radius:8px;text-align:center}
+.cinput:focus{outline:none;border-color:var(--coral)}
+.cmini{width:20px;height:15px;line-height:1;font-size:.55rem;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;padding:0;margin:1px 0}
+.cmini:hover:not(:disabled){background:var(--coral);color:#150a0a}
+.cmini:disabled{opacity:.3;cursor:default}
+.dpill{display:inline-block;cursor:grab;font-family:'JetBrains Mono',monospace;font-size:.74rem;font-weight:700;padding:5px 10px;border-radius:7px;color:#0c0c12;user-select:none;transition:transform .12s,box-shadow .12s,outline-color .12s}
+.dpill:hover{box-shadow:0 4px 12px -4px rgba(0,0,0,.6)}
+.dpill:active{cursor:grabbing}
+.dpill.dragover{outline:2px dashed #fff;outline-offset:2px;transform:scale(1.06)}
+.swapbtn{margin:0 4px;min-width:24px;height:22px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;font-size:.8rem;line-height:1;padding:0 4px;vertical-align:middle}
+.swapbtn:hover{background:var(--coral);color:#150a0a;border-color:var(--coral)}
+table.cmp td,table.cmp th{padding:10px 12px}
+table.cmp tbody tr,table.cmp tr{cursor:pointer}
+table.cmp tr:hover td{background:rgba(255,255,255,.03)}
+table.cmp tr.sel td{background:rgba(255,212,59,.16);box-shadow:inset 3px 0 0 var(--gold)}
+.crit{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.crit .c{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--coral);border-radius:10px;padding:13px 16px;font-size:.82rem;line-height:1.6}
+.crit .c b{color:var(--gold)}
+ul.clean{list-style:none;display:flex;flex-direction:column;gap:9px;font-size:.86rem;line-height:1.6;color:#c5c8e8}
+ul.clean li{display:flex;gap:10px}
+ul.clean li::before{content:'▸';color:var(--coral);font-weight:700}
+@media(max-width:620px){.barrow{grid-template-columns:96px 1fr 44px}.bloc{grid-template-columns:1fr}}
+/* ── Voting-in-AI tab ── */
+.ai-grid{display:flex;flex-direction:column;gap:22px}
+.ai-card{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:16px;padding:20px 22px 22px;position:relative;overflow:hidden}
+.ai-card::before{content:'';position:absolute;top:0;bottom:0;left:0;width:3px;background:linear-gradient(var(--coral),var(--gold))}
+.ai-head{display:flex;align-items:center;gap:13px;margin-bottom:4px}
+.ai-ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:1.4rem;flex:0 0 auto;background:linear-gradient(135deg,rgba(255,107,107,.2),rgba(255,212,59,.12));border:1px solid rgba(255,212,59,.28)}
+.ai-card h3{font-size:1.08rem;font-weight:700;line-height:1.25}
+.ai-tag{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold);font-weight:700}
+.ai-card p{font-size:.85rem;line-height:1.75;color:#c5c8e8;margin:10px 0}
+.ai-card p:last-child{margin-bottom:0}
+.viz{background:radial-gradient(ellipse at 50% 0%,rgba(79,142,247,.09),transparent 65%),linear-gradient(180deg,#0c0d17,#070810);border:1px solid var(--border);border-radius:12px;padding:18px;margin-top:14px}
+.viz-title{font-family:'JetBrains Mono',monospace;font-size:.64rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:14px;text-align:center}
+.codeblock{position:relative;background:#0a0b14;border:1px solid var(--border);border-radius:12px;padding:30px 16px 14px;overflow:auto;margin-top:14px}
+.codeblock .code-body{font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height:1.7;color:#c7cbe8;white-space:pre;display:block}
+.codeblock .cm{color:#6b7099;font-style:italic}
+.codeblock .kw{color:#ff8a8a}
+.codeblock .st{color:#7ee0b8}
+.codeblock .fn{color:#ffd76b}
+.code-lang{position:absolute;top:0;left:0;font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);background:rgba(255,255,255,.05);padding:4px 11px;border-radius:12px 0 8px 0;font-weight:700}
+.copybtn{position:absolute;top:6px;right:6px;font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:700;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);color:var(--muted);cursor:pointer;z-index:2}
+.copybtn:hover{color:var(--gold);border-color:var(--gold)}
+.clfrow{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center;margin-bottom:9px}
+.clfrow .nm{font-size:.78rem;font-weight:700}
+.clfrow .nm small{display:block;color:var(--muted);font-weight:400;font-size:.66rem;font-family:'JetBrains Mono',monospace}
+.pbar{display:flex;height:28px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.pseg{display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:800;color:#08090f;transition:width .45s cubic-bezier(.22,.7,.25,1);min-width:0;white-space:nowrap;overflow:hidden}
+.airange{width:100%;-webkit-appearance:none;appearance:none;height:6px;border-radius:6px;background:linear-gradient(90deg,#4f8ef7,#00d4aa);outline:none}
+.airange::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid #08090f;box-shadow:0 0 9px rgba(255,212,59,.6)}
+.airange::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid #08090f}
+.votechip{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.72rem;padding:5px 11px;border-radius:999px;border:1px solid var(--border);background:var(--bg2)}
+.agent{display:flex;flex-direction:column;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--muted)}
+.agent .av{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:1.4rem;background:var(--bg3);border:1px solid var(--border);position:relative}
+.agent .ar{font-size:1.1rem;font-weight:800}
+.chain{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap}
+.chain .step{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.16)}
+.chain .ans{margin-left:6px;font-family:'JetBrains Mono',monospace;font-weight:800;font-size:.74rem;padding:4px 11px;border-radius:7px;color:#08090f}
+.tree{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:1.5rem}
+.tree .leaf{width:13px;height:13px;border-radius:50%;border:2px solid #08090f}
+.aiwin{display:inline-flex;align-items:center;gap:9px;font-weight:800;font-size:1rem;background:rgba(81,207,102,.12);border:1px solid rgba(81,207,102,.4);color:var(--green);padding:8px 16px;border-radius:10px;margin-top:10px}
+.aiwin.warn{background:rgba(255,212,59,.1);border-color:rgba(255,212,59,.4);color:var(--gold)}
+</style>
+</head>
+<body>
+
+<a href="../index.html" class="home-back" title="Back to AI-Lab home">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12 H 5"/><path d="M12 5 L 5 12 L 12 19"/></svg>
+  Home
+</a>
+
+<canvas id="particles"></canvas>
+<div class="progress-bar" id="progress-bar" style="width:10%"></div>
+
+<div class="page-wrap">
+  <header>
+    <span class="chapter-badge">04 · Social Choice</span>
+    <h1>Voting &amp; Social Choice</h1>
+    <p>How a group turns individual rankings into one winner — and why every rule can be "unfair"</p>
+  </header>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab(0)">01 Intro</button>
+    <button class="tab" onclick="switchTab(1)">02 Plurality</button>
+    <button class="tab" onclick="switchTab(2)">03 Borda</button>
+    <button class="tab" onclick="switchTab(3)">04 STV</button>
+    <button class="tab" onclick="switchTab(4)">05 Condorcet</button>
+    <button class="tab" onclick="switchTab(5)">06 Kemeny's Rule</button>
+    <button class="tab" onclick="switchTab(6)">07 Arrow's Theorem</button>
+    <button class="tab" onclick="switchTab(7)">08 Voting in AI</button>
+    <button class="tab" onclick="switchTab(8)">09 Compare</button>
+  </div>
+
+  <!-- ══ PANEL 0 — INTRO / EDITOR ══ -->
+  <div class="panel active" id="p0">
+    <section>
+      <div class="section-title">The problem of social choice</div>
+      <div class="glass">
+        <p>Each voter has a <strong style="color:var(--coral)">strict ranking</strong> of the candidates. A <strong>voting rule</strong> takes the whole <em>preference profile</em> and returns one winner. The catch: <strong style="color:var(--gold)">different reasonable rules pick different winners from the very same ballots.</strong></p>
+        <p>This lab uses one editable election. Edit the blocs below, pick a preset, then walk the tabs to see how Plurality, Plurality + Runoff, Borda, STV, Condorcet and Kemeny each decide — and where they disagree.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Where this shows up</div>
+      <div class="glass" style="padding:18px 22px">
+        <div style="display:flex;flex-direction:column;gap:13px;font-size:.86rem;line-height:1.65;color:#c5c8e8">
+          <p style="margin:0"><span style="color:var(--coral);font-weight:700">▸ </span><strong style="color:var(--coral)">Politics &amp; governance</strong> — elections, parliaments and referenda turn millions of individual preferences into <em>one</em> collective decision; participatory budgeting even lets citizens vote directly on how public money is spent.</p>
+          <p style="margin:0"><span style="color:var(--coral);font-weight:700">▸ </span><strong style="color:var(--coral)">Distributed systems</strong> — to stay consistent when machines crash, a cluster must agree on <em>one</em> coordinator (a "leader"). A node becomes leader only after collecting votes from a <strong style="color:var(--gold)">majority / quorum</strong>; a split vote (tie) stalls progress, so real clusters use odd sizes and randomised election timeouts to break symmetry.</p>
+          <p style="margin:0"><span style="color:var(--coral);font-weight:700">▸ </span><strong style="color:var(--coral)">Blockchain consensus</strong> — proof-of-stake and Byzantine-fault-tolerant protocols vote (weighted by stake) on the next valid block, reaching agreement even when some participants are faulty or adversarial.</p>
+          <p style="margin:0"><span style="color:var(--coral);font-weight:700">▸ </span><strong style="color:var(--coral)">Multi-agent systems &amp; robotics</strong> — independent agents or swarm robots vote to commit to a shared plan or target, so the team acts coherently instead of pulling in different directions.</p>
+          <p style="margin:0"><span style="color:var(--coral);font-weight:700">▸ </span><strong style="color:var(--coral)">Peer review &amp; hiring committees</strong> — reviewers' or interviewers' individual rankings are aggregated into one accept / hire decision — a small-scale election that inherits all the same paradoxes.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Candidates</div>
+      <div id="cand-list" class="row"></div>
+    </section>
+
+    <section>
+      <div class="section-title">Preference profile <span class="muted" style="font-size:.74rem;font-weight:400">— each bloc votes identically</span></div>
+      <div class="row" style="margin-bottom:14px">
+        <span class="muted" style="font-size:.74rem">Presets:</span>
+        <button class="btn" onclick="loadPreset('tn')">Tennessee capital</button>
+        <button class="btn" onclick="loadPreset('cycle')">Condorcet cycle</button>
+        <button class="btn" onclick="loadPreset('spoiler')">Spoiler effect</button>
+        <button class="btn" onclick="loadPreset('unanimous')">Near-unanimous</button>
+      </div>
+      <div id="profile" class="profile-grid"></div>
+      <div class="muted" style="font-size:.76rem;margin-top:10px">Total voters: <strong id="tot" style="color:var(--text)"></strong>. Rename, add or remove candidates above; type a bloc's size and drag pills or use ⇄ to reorder, ✕ to remove. Rankings are read left → right (1st choice first).</div>
+    </section>
+
+    <div class="nav-footer"><span></span><button class="btn primary" onclick="switchTab(1)">Next: Plurality →</button></div>
+  </div>
+
+  <!-- ══ PANEL 1 — PLURALITY ══ -->
+  <div class="panel" id="p1">
+    <section>
+      <div class="section-title">Plurality &amp; Two-Round Runoff</div>
+      <div class="glass"><p>Two closely-related rules on the <em>same</em> ballots: plain <strong style="color:var(--coral)">Plurality</strong>, and what changes once you add a <strong style="color:var(--coral)">runoff</strong>. Edit the ballots once below — both visualizations update together.</p></div>
+      <div class="votes-box"><div class="vlabel">Votes — edit and watch both methods update</div><div class="profile-grid js-profile"></div></div>
+    </section>
+    <section>
+      <div class="section-title">① Plurality (First-Past-The-Post)</div>
+      <div class="glass" style="margin-bottom:12px"><p>The simplest rule: count only each voter's <strong>1st choice</strong>; most first-place votes wins. It ignores everything below the top — which is why a strong but divisive candidate can win with well under half the vote, and why "spoiler" candidates matter.</p></div>
+      <div class="scene3d"><div class="scene" id="sc1"></div></div><div class="stepbar" id="sb1"></div>
+    </section>
+    <section>
+      <div class="section-title">② + Runoff (Two-Round System)</div>
+      <div class="glass" style="margin-bottom:12px"><p>Bolt a <strong style="color:var(--coral)">runoff</strong> onto plurality and you get the <strong>Two-Round System</strong> — exactly how <strong>France elects its President</strong> (also Brazil and many others). <strong>Round&nbsp;1</strong> is plain plurality; the <strong style="color:var(--coral)">top two</strong> candidates <strong>always advance</strong> to a <strong>Round&nbsp;2</strong> runoff, where <em>every</em> ballot backs whichever of the two finalists it ranks higher. <b>Coming first in Round&nbsp;1 does <em>not</em> win the election</b> — even the leader must win the runoff. (A Round-1 absolute majority would win outright, but in France that has <strong>never</strong> happened.) Unlike IRV it never transfers beyond the top two.</p></div>
+      <div class="scene3d"><div class="scene" id="sc5"></div></div><div class="stepbar" id="sb5"></div>
+    </section>
+    <div class="nav-footer"><button class="btn" onclick="switchTab(0)">← Intro</button><button class="btn primary" onclick="switchTab(2)">Next: Borda →</button></div>
+  </div>
+
+  <!-- ══ PANEL 2 — BORDA ══ -->
+  <div class="panel" id="p2">
+    <section>
+      <div class="section-title">Borda Count</div>
+      <div class="glass"><p>Use the <strong>whole ranking</strong>. With <code>m</code> candidates, a 1st place is worth <code>m−1</code> points, 2nd <code>m−2</code>, … last <code>0</code>. Sum across all voters; highest total wins. Borda rewards broadly-acceptable candidates over narrowly-loved ones.</p></div>
+    </section>
+    <section><div class="section-title">Borda points</div><div class="votes-box"><div class="vlabel">Votes — edit and watch this method update</div><div class="profile-grid js-profile"></div></div><div class="scene3d"><div class="scene" id="sc2"></div></div><div class="stepbar" id="sb2"></div></section>
+    <div class="nav-footer"><button class="btn" onclick="switchTab(1)">← Plurality</button><button class="btn primary" onclick="switchTab(3)">Next: STV →</button></div>
+  </div>
+
+  <!-- ══ PANEL 4 — STV ══ -->
+  <div class="panel" id="pSTV">
+    <section>
+      <div class="section-title">Single Transferable Vote (STV)</div>
+      <div class="glass"><p>STV fills <strong>several seats</strong> proportionally. A candidate is elected on reaching the <strong>Droop quota</strong> <code>⌊v/(seats+1)⌋+1</code>. <strong style="color:var(--green)">Surplus</strong> above quota transfers fractionally to next preferences (Gregory method); if nobody meets quota the <strong style="color:var(--coral)">lowest</strong> is eliminated and their ballots transfer at full value. With one seat, STV is exactly Instant-Runoff.</p></div>
+    </section>
+    <section>
+      <div class="row" style="margin-bottom:12px;flex-wrap:wrap"><span class="muted" style="font-size:.76rem">Seats</span>
+        <div class="stepper"><button onclick="setSeats(-1)">−</button><span class="n" id="seatbox">1</span><button onclick="setSeats(1)">+</button></div>
+        <span class="muted" style="font-size:.76rem;margin-left:8px">Candidates</span>
+        <div class="stepper"><button onclick="mainCandDel()">−</button><span class="n" id="candbox">4</span><button onclick="mainCandAdd()">+</button></div>
+        <span class="muted" style="font-size:.76rem;margin-left:8px">Droop quota: <strong id="quotabox" style="color:var(--text)">—</strong></span></div>
+      <div class="votes-box"><div class="vlabel">Votes — edit and watch this method update</div><div class="profile-grid js-profile"></div></div><div class="scene3d"><div class="scene" id="sc6"></div></div><div class="stepbar" id="sb6"></div>
+    </section>
+    <div class="nav-footer"><button class="btn" onclick="switchTab(2)">← Borda</button><button class="btn primary" onclick="switchTab(4)">Next: Condorcet →</button></div>
+  </div>
+
+  <!-- ══ PANEL 5 — CONDORCET ══ -->
+  <div class="panel" id="p3">
+    <section>
+      <div class="section-title">Condorcet Method</div>
+      <div class="glass"><p>Run every <strong>head-to-head</strong> match using the full rankings. A <strong style="color:var(--green)">Condorcet winner</strong> is a candidate who would beat <em>every</em> other candidate in a one-on-one majority vote. Many people consider this the "rightful" winner — yet famous rules (Plurality, IRV) can fail to elect it, and sometimes it doesn't exist at all.</p></div>
+    </section>
+    <section><div class="section-title">Pairwise results <span class="muted" style="font-size:.74rem;font-weight:400">— head-to-head, one matchup per step</span></div><div class="votes-box"><div class="vlabel">Votes — edit and watch this method update</div><div class="profile-grid js-profile"></div></div><div class="scene3d"><div class="scene" id="sc3"></div></div><div class="stepbar" id="sb3"></div></section>
+    <section>
+      <div class="section-title">The Condorcet paradox</div>
+      <div class="glass"><p>Majorities can be <strong style="color:var(--coral)">cyclic</strong>. With three voters ranking <code>A&gt;B&gt;C</code>, <code>B&gt;C&gt;A</code>, <code>C&gt;A&gt;B</code>: a majority prefers <strong>A&nbsp;over&nbsp;B</strong>, another majority <strong>B&nbsp;over&nbsp;C</strong>, and yet another <strong>C&nbsp;over&nbsp;A</strong> — a rock-paper-scissors with <em>no</em> Condorcet winner. Group preference can be irrational even when every individual is perfectly rational. The diagram below is this exact example.</p></div>
+      <div style="background:radial-gradient(ellipse at 50% 18%,rgba(255,107,107,.08),transparent 60%),linear-gradient(180deg,#0c0d17,#070810);border:1px solid var(--border);border-radius:14px;padding:20px 18px;margin-top:14px">
+        <div class="s-title" style="text-align:center">A concrete cycle · 3 voters, no winner</div>
+        <div style="display:flex;gap:30px;align-items:center;justify-content:center;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:7px"><span class="mono" style="color:var(--muted);min-width:58px;font-size:.74rem">Voter 1</span><span class="pill" style="background:#4f8ef7">1. A</span><span class="sep">›</span><span class="pill" style="background:#00d4aa">2. B</span><span class="sep">›</span><span class="pill" style="background:#b06eff">3. C</span></div>
+            <div style="display:flex;align-items:center;gap:7px"><span class="mono" style="color:var(--muted);min-width:58px;font-size:.74rem">Voter 2</span><span class="pill" style="background:#00d4aa">1. B</span><span class="sep">›</span><span class="pill" style="background:#b06eff">2. C</span><span class="sep">›</span><span class="pill" style="background:#4f8ef7">3. A</span></div>
+            <div style="display:flex;align-items:center;gap:7px"><span class="mono" style="color:var(--muted);min-width:58px;font-size:.74rem">Voter 3</span><span class="pill" style="background:#b06eff">1. C</span><span class="sep">›</span><span class="pill" style="background:#4f8ef7">2. A</span><span class="sep">›</span><span class="pill" style="background:#00d4aa">3. B</span></div>
+          </div>
+          <svg viewBox="0 0 360 320" width="300" height="266" style="max-width:100%;overflow:visible" role="img" aria-label="Condorcet cycle diagram: A beats B, B beats C, C beats A, each by 2 votes to 1">
+            <defs>
+              <marker id="ahA" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="12" refX="11" refY="5" orient="auto"><path d="M0,0 L11,5 L0,10 Z" fill="#4f8ef7"/></marker>
+              <marker id="ahB" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="12" refX="11" refY="5" orient="auto"><path d="M0,0 L11,5 L0,10 Z" fill="#00d4aa"/></marker>
+              <marker id="ahC" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="12" refX="11" refY="5" orient="auto"><path d="M0,0 L11,5 L0,10 Z" fill="#b06eff"/></marker>
+            </defs>
+            <path d="M195.95,82.74 Q259.2,142.6 279.05,227.26" fill="none" stroke="#4f8ef7" stroke-width="3.4" marker-end="url(#ahA)"/>
+            <path d="M263,255 Q180,281 97,255" fill="none" stroke="#00d4aa" stroke-width="3.4" marker-end="url(#ahB)"/>
+            <path d="M80.95,227.26 Q100.8,142.6 164.05,82.74" fill="none" stroke="#b06eff" stroke-width="3.4" marker-end="url(#ahC)"/>
+            <g font-family="'JetBrains Mono',monospace" font-size="13" font-weight="700" fill="#ffd43b">
+              <text x="290" y="150" text-anchor="middle">2–1</text>
+              <text x="180" y="302" text-anchor="middle">2–1</text>
+              <text x="70" y="150" text-anchor="middle">2–1</text>
+            </g>
+            <circle cx="180" cy="55" r="32" fill="#4f8ef7"/>
+            <circle cx="295" cy="255" r="32" fill="#00d4aa"/>
+            <circle cx="65" cy="255" r="32" fill="#b06eff"/>
+            <g font-family="Syne,sans-serif" font-size="26" font-weight="800" fill="#08090f" text-anchor="middle" dominant-baseline="central">
+              <text x="180" y="56">A</text>
+              <text x="295" y="256">B</text>
+              <text x="65" y="256">C</text>
+            </g>
+          </svg>
+        </div>
+        <div style="text-align:center">
+          <div class="win-tag no-win" style="margin-top:14px">⚠ A beats B, B beats C, C beats A — the loop closes, so every candidate loses one duel. No Condorcet winner exists.</div>
+          <div style="margin-top:12px"><button class="btn" onclick="loadPreset('cycle')">⟳ Load a cyclic election into the live pairwise matrix above</button></div>
+        </div>
+      </div>
+    </section>
+    <section>
+      <div class="section-title">Condorcet consistency</div>
+      <div class="glass" style="margin-bottom:12px"><p>A rule is <strong style="color:var(--green)">Condorcet-consistent</strong> if it <em>always</em> elects the Condorcet winner whenever one exists. Surprisingly few common rules are:</p></div>
+      <div class="crit">
+        <div class="c" style="border-left-color:var(--green)"><b>Condorcet</b> &nbsp;✔ consistent<br>By definition.</div>
+        <div class="c"><b>Plurality / Runoff</b> &nbsp;✘<br>Can elect a candidate the majority would reject head-to-head.</div>
+        <div class="c"><b>Borda</b> &nbsp;✘<br>Rewards breadth; can pass over a pairwise champion.</div>
+      </div>
+    </section>
+    <div class="nav-footer"><button class="btn" onclick="switchTab(3)">← STV</button><button class="btn primary" onclick="switchTab(5)">Next: Kemeny's Rule →</button></div>
+  </div>
+
+  <!-- ══ PANEL 6 — KEMENY'S RULE (UNHAPPINESS) ══ -->
+  <div class="panel" id="pUNH">
+    <section>
+      <div class="section-title">Kemeny's Rule — minimising total unhappiness</div>
+      <div class="glass"><p>Kemeny's rule finds the full <strong>consensus ranking</strong>, not just a winner — it is a <strong style="color:var(--coral)">social welfare function</strong>. Let <code>n<sub>a≻b</sub></code> be the number of voters who prefer <code>a</code> to <code>b</code>. For a candidate ranking <code>σ</code>, every pair where <code>a ≻<sub>σ</sub> b</code> makes the <code>n<sub>b≻a</sub></code> voters who disagree <em>unhappy</em>.</p></div>
+      <div class="glass" style="margin-top:12px;text-align:center;font-size:1.05rem"><p style="margin:0">Total unhappiness &nbsp; <b style="color:var(--gold)">K(σ) = Σ<sub>(a,b) : a ≻<sub>σ</sub> b</sub> n<sub>b≻a</sub></b></p></div>
+      <div class="glass" style="margin-top:12px"><p>Select the ranking <code>σ*</code> with <strong style="color:var(--green)">minimum total unhappiness</strong>. As a <strong>social choice function</strong>, the winner is simply the <strong>top alternative</strong> of σ*. (Minimising disagreement is exactly the dual of maximising the voters' pairwise agreement — both pick the <em>same</em> σ*.) Kemeny is <strong style="color:var(--green)">Condorcet-consistent</strong> and the maximum-likelihood estimate of a "true" order under noisy voters.</p></div>
+    </section>
+    <section><div class="section-title">Scoring rankings by unhappiness</div><div class="votes-box"><div class="vlabel">Votes — edit and watch this method update</div><div class="profile-grid js-profile"></div></div><div class="scene3d"><div class="scene" id="scU"></div></div><div class="stepbar" id="sbU"></div></section>
+    <div class="nav-footer"><button class="btn" onclick="switchTab(4)">← Condorcet</button><button class="btn primary" onclick="switchTab(6)">Next: Arrow's Theorem →</button></div>
+  </div>
+
+  <!-- ══ PANEL 8 — ARROW'S THEOREM ══ -->
+  <div class="panel" id="pARROW">
+    <section>
+      <div class="section-title">Arrow's Impossibility Theorem (1951)</div>
+      <div class="glass" style="margin-bottom:14px"><p>Across every tab you've seen one unsettling fact: the <em>same</em> ballots elect <em>different</em> winners depending on the rule. <strong>Kenneth Arrow (1951)</strong> proved this is unavoidable — it earned him the Nobel Prize.</p></div>
+      <div class="glass" style="margin-bottom:14px"><p>With <strong>3 or more candidates</strong>, the <em>only</em> ranked voting rule that simultaneously satisfies <strong>Unanimity</strong>, <strong>Independence of Irrelevant Alternatives</strong> and <strong>Unrestricted domain</strong> is a <strong style="color:var(--coral)">dictatorship</strong>. Equivalently — <b>no</b> rule can satisfy all four fairness criteria at once:</p></div>
+      <div class="crit">
+        <div class="c"><b>Unanimity (Pareto)</b><br>If everyone prefers A to B, society must too.</div>
+        <div class="c"><b>Independence of Irrelevant Alternatives</b><br>A vs. B's social ranking shouldn't flip because of an unrelated C entering or leaving.</div>
+        <div class="c"><b>Non-dictatorship</b><br>No single voter's ranking always decides for everyone.</div>
+        <div class="c"><b>Unrestricted domain</b><br>The rule must handle <em>any</em> set of individual rankings.</div>
+      </div>
+    </section>
+    <section>
+      <div class="section-title">Watch one criterion break — the spoiler effect</div>
+      <div class="glass" style="margin-bottom:12px"><p><strong style="color:var(--gold)">Independence of Irrelevant Alternatives</strong> demands that society's ranking of two candidates depend only on how voters rank <em>those two</em> — never on some unrelated third option. Both <b style="color:var(--coral)">Plurality</b> and <b style="color:var(--coral)">Borda</b> break it. Pick an example and step through: a candidate who can't win still flips the result, even though not one voter changed their mind about the candidates that matter.</p></div>
+      <div class="viz">
+        <div class="viz-title">Drop the irrelevant candidate — step by step</div>
+        <div class="row" style="justify-content:center;gap:8px;margin-bottom:14px">
+          <button class="btn iia-tab active" data-ex="plu" onclick="iiaPick('plu')">Plurality · spoiler</button>
+          <button class="btn iia-tab" data-ex="bor" onclick="iiaPick('bor')">Borda · pairwise flip</button>
+        </div>
+        <div class="scene3d"><div class="scene" id="iia-sc"></div></div><div class="stepbar" id="iia-sb"></div>
+      </div>
+    </section>
+    <section>
+      <div class="section-title">Why it's unavoidable — a short proof</div>
+      <div class="glass" style="margin-bottom:12px"><p>The trick is to <strong style="color:var(--coral)">hunt for a hidden dictator</strong>. Assume some rule obeys <b>Unanimity</b> and <b>IIA</b> with 3&nbsp;or&nbsp;more options — four short steps then force it to be a dictatorship.</p>
+      <p style="margin:8px 0 0"><a href="https://www.youtube.com/watch?v=LVkioI5Z0JE" target="_blank" rel="noopener" style="color:var(--blue);font-weight:700;text-decoration:none;font-size:.82rem">▶ Watch: the pivotal-voter proof, visualized ↗</a></p></div>
+      <div class="glass" style="margin-bottom:10px"><p><b style="color:var(--gold)">Step 1 · One option always sits at an extreme.</b> Pick an option <b style="color:#ff6b6b">B</b> and look only at profiles where <em>every</em> voter puts B either dead-first or dead-last. Then society must put B first or last too. If society instead slipped B into the <em>middle</em> (some A above B, B above some C), you could swap A and C on every ballot — nobody's opinion of B moves, so by <b>IIA</b> society still has A&nbsp;above&nbsp;B and B&nbsp;above&nbsp;C, hence A&nbsp;above&nbsp;C. But you just made <em>everyone</em> prefer C to A, and <b>Unanimity</b> says society must agree. Contradiction — so B stays at an extreme.</p></div>
+      <div class="viz">
+        <div class="viz-title">Where can society put B? · only the extremes survive</div>
+        <div class="row" style="justify-content:center;gap:24px;flex-wrap:wrap;align-items:flex-start">
+          <div style="text-align:center">
+            <div class="mono" style="font-size:.64rem;color:var(--green);margin-bottom:7px">✓ B first</div>
+            <div style="display:inline-flex;flex-direction:column;gap:3px"><span class="pill" style="background:#ff6b6b;padding:4px 16px;text-align:center">B</span><span class="pill" style="background:#4f8ef7;padding:4px 16px;text-align:center">A</span><span class="pill" style="background:#b06eff;padding:4px 16px;text-align:center">C</span></div>
+          </div>
+          <div style="text-align:center;outline:2px dashed #ff6b6b;outline-offset:5px;border-radius:10px;padding:4px">
+            <div class="mono" style="font-size:.64rem;color:#ff6b6b;margin-bottom:7px">✗ B in the middle</div>
+            <div style="display:inline-flex;flex-direction:column;gap:3px;opacity:.5"><span class="pill" style="background:#4f8ef7;padding:4px 16px;text-align:center">A</span><span class="pill" style="background:#ff6b6b;padding:4px 16px;text-align:center">B</span><span class="pill" style="background:#b06eff;padding:4px 16px;text-align:center">C</span></div>
+          </div>
+          <div style="text-align:center">
+            <div class="mono" style="font-size:.64rem;color:var(--green);margin-bottom:7px">✓ B last</div>
+            <div style="display:inline-flex;flex-direction:column;gap:3px"><span class="pill" style="background:#4f8ef7;padding:4px 16px;text-align:center">A</span><span class="pill" style="background:#b06eff;padding:4px 16px;text-align:center">C</span><span class="pill" style="background:#ff6b6b;padding:4px 16px;text-align:center">B</span></div>
+          </div>
+        </div>
+        <div class="muted" style="font-size:.78rem;text-align:center;margin-top:14px;line-height:1.6">In the <b style="color:#ff6b6b">middle</b>, swapping <b style="color:#4f8ef7">A</b> &amp; <b style="color:#b06eff">C</b> on every ballot (B never moves) keeps A›B and B›C by <b>IIA</b> — so A›C — yet now <em>everyone</em> prefers C›A, breaking <b>Unanimity</b>. Only first or last is consistent.</div>
+      </div>
+      <div class="glass" style="margin-bottom:10px"><p><b style="color:var(--gold)">Step 2 · One voter is pivotal.</b> Start with B last on every ballot — society ranks B last. Now flip voters to B-<em>first</em> one at a time. Once everyone has flipped, society ranks B first. So a <em>single</em> voter's flip tipped society's B from last to first. Slide through it below — that is the <b>pivotal voter</b>.</p></div>
+      <div class="viz">
+        <div class="viz-title">The pivotal voter · flip B from last to first, one voter at a time</div>
+        <div class="row" style="justify-content:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <span class="muted" style="font-size:.74rem">Voters who've moved B to the top</span>
+          <input class="airange" style="max-width:220px" type="range" min="0" max="5" step="1" value="0" oninput="arrowSet(this.value)">
+          <span class="mono" id="arrow-kval" style="font-weight:700;color:var(--gold)">0</span>
+        </div>
+        <div id="arrow-pivot"></div>
+      </div>
+      <div class="glass" style="margin:14px 0 10px">
+        <p><b style="color:var(--gold)">Step 3 · The pivot secretly controls every other pair.</b> That same voter <b>n*</b> decides more than just B. Take any two <em>other</em> options <b style="color:#4f8ef7">A</b> and <b style="color:#b06eff">C</b>. Build <em>one</em> profile: leave B exactly where the march had it, but let the pivot rank <b style="color:#4f8ef7">A</b>&nbsp;›&nbsp;<span style="color:#ff6b6b">B</span>&nbsp;›&nbsp;<b style="color:#b06eff">C</b>. Now read those same ballots two ways:</p>
+        <p style="margin:8px 0 0"><span style="color:var(--coral);font-weight:700">▸ </span>Compare only <b style="color:#4f8ef7">A</b> vs <span style="color:#ff6b6b">B</span>: the ballots are identical to the step <em>just before</em> the pivot flipped, where society had <span style="color:#ff6b6b">B</span> at the <b>bottom</b> — so society puts <b style="color:#4f8ef7">A</b> above <span style="color:#ff6b6b">B</span>.</p>
+        <p style="margin:6px 0 0"><span style="color:var(--coral);font-weight:700">▸ </span>Compare only <span style="color:#ff6b6b">B</span> vs <b style="color:#b06eff">C</b>: the ballots are identical to the step <em>just after</em> it flipped, where society had <span style="color:#ff6b6b">B</span> on <b>top</b> — so society puts <span style="color:#ff6b6b">B</span> above <b style="color:#b06eff">C</b>.</p>
+        <p style="margin:8px 0 0">Chain them — <b style="color:#4f8ef7">A</b>&nbsp;›&nbsp;<span style="color:#ff6b6b">B</span>&nbsp;›&nbsp;<b style="color:#b06eff">C</b> — so society ranks <b style="color:#4f8ef7">A</b> above <b style="color:#b06eff">C</b>. But by <b>IIA</b> society's A-vs-C verdict may depend <em>only</em> on how people rank A vs C, and the pivot is the one voter we pinned: everyone else could rank A vs C however they like and the answer wouldn't budge. So the <b style="color:var(--gold)">pivot alone decides A vs C</b> — and the same trick works for every pair, fixing society's <strong>entire</strong> ranking.</p>
+      </div>
+      <div class="viz">
+        <div class="viz-title">The whole profile · only the pivot has B in the middle</div>
+        <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;align-items:flex-start">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px"><span class="mono" style="font-size:.56rem;color:var(--muted);text-align:center;line-height:1.3">Voter 1<br>B top</span><div style="display:inline-flex;flex-direction:column;gap:2px"><span class="pill" style="background:#ff6b6b;padding:3px 12px;font-size:.76rem;text-align:center">B</span><span class="pill" style="background:#4f8ef7;padding:3px 12px;font-size:.76rem;text-align:center">A</span><span class="pill" style="background:#b06eff;padding:3px 12px;font-size:.76rem;text-align:center">C</span></div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px"><span class="mono" style="font-size:.56rem;color:var(--muted);text-align:center;line-height:1.3">Voter 2<br>B top</span><div style="display:inline-flex;flex-direction:column;gap:2px"><span class="pill" style="background:#ff6b6b;padding:3px 12px;font-size:.76rem;text-align:center">B</span><span class="pill" style="background:#b06eff;padding:3px 12px;font-size:.76rem;text-align:center">C</span><span class="pill" style="background:#4f8ef7;padding:3px 12px;font-size:.76rem;text-align:center">A</span></div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px;outline:2px solid var(--gold);outline-offset:4px;border-radius:10px;padding:5px"><span class="mono" style="font-size:.56rem;color:var(--gold);font-weight:700;text-align:center;line-height:1.3">Voter 3 ★<br>B middle</span><div style="display:inline-flex;flex-direction:column;gap:2px"><span class="pill" style="background:#4f8ef7;padding:3px 12px;font-size:.76rem;text-align:center;outline:2px solid #ffd43b;outline-offset:1px">A</span><span class="pill" style="background:#ff6b6b;padding:3px 12px;font-size:.76rem;text-align:center">B</span><span class="pill" style="background:#b06eff;padding:3px 12px;font-size:.76rem;text-align:center;outline:2px solid #ffd43b;outline-offset:1px">C</span></div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px"><span class="mono" style="font-size:.56rem;color:var(--muted);text-align:center;line-height:1.3">Voter 4<br>B bottom</span><div style="display:inline-flex;flex-direction:column;gap:2px"><span class="pill" style="background:#4f8ef7;padding:3px 12px;font-size:.76rem;text-align:center">A</span><span class="pill" style="background:#b06eff;padding:3px 12px;font-size:.76rem;text-align:center">C</span><span class="pill" style="background:#ff6b6b;padding:3px 12px;font-size:.76rem;text-align:center">B</span></div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px"><span class="mono" style="font-size:.56rem;color:var(--muted);text-align:center;line-height:1.3">Voter 5<br>B bottom</span><div style="display:inline-flex;flex-direction:column;gap:2px"><span class="pill" style="background:#b06eff;padding:3px 12px;font-size:.76rem;text-align:center">C</span><span class="pill" style="background:#4f8ef7;padding:3px 12px;font-size:.76rem;text-align:center">A</span><span class="pill" style="background:#ff6b6b;padding:3px 12px;font-size:.76rem;text-align:center">B</span></div></div>
+        </div>
+        <div style="text-align:center;font-size:1.4rem;color:var(--green);margin:9px 0 4px">↓</div>
+        <div>
+          <div class="mono" style="font-size:.6rem;color:var(--muted);text-align:center;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:13px">Why — read the pivot's two march positions</div>
+          <div class="row" style="justify-content:center;gap:15px;flex-wrap:wrap;align-items:center">
+            <div style="text-align:center">
+              <div class="mono" style="font-size:.58rem;color:var(--muted);margin-bottom:6px;line-height:1.4">Pivot puts B <b style="color:#ff6b6b">last</b><br>(just before the flip)</div>
+              <div style="display:inline-flex;flex-direction:column;gap:3px"><span class="pill" style="background:#4f8ef7;padding:3px 14px;text-align:center;outline:2px solid #ffd43b;outline-offset:1px">A</span><span class="pill" style="background:#b06eff;padding:3px 14px;text-align:center">C</span><span class="pill" style="background:#ff6b6b;padding:3px 14px;text-align:center;outline:2px solid #ffd43b;outline-offset:1px">B</span></div>
+              <div class="mono" style="font-size:.62rem;color:var(--green);margin-top:7px">society had B last ⟹ <b>A › B</b></div>
+            </div>
+            <div style="font-size:1.4rem;color:var(--gold);font-weight:800">+</div>
+            <div style="text-align:center">
+              <div class="mono" style="font-size:.58rem;color:var(--muted);margin-bottom:6px;line-height:1.4">Pivot puts B <b style="color:#ff6b6b">first</b><br>(just after the flip)</div>
+              <div style="display:inline-flex;flex-direction:column;gap:3px"><span class="pill" style="background:#ff6b6b;padding:3px 14px;text-align:center;outline:2px solid #ffd43b;outline-offset:1px">B</span><span class="pill" style="background:#4f8ef7;padding:3px 14px;text-align:center">A</span><span class="pill" style="background:#b06eff;padding:3px 14px;text-align:center;outline:2px solid #ffd43b;outline-offset:1px">C</span></div>
+              <div class="mono" style="font-size:.62rem;color:var(--green);margin-top:7px">society had B first ⟹ <b>B › C</b></div>
+            </div>
+            <div style="font-size:1.5rem;color:var(--gold);font-weight:800">⟹</div>
+            <div style="text-align:center;outline:2px solid var(--green);outline-offset:5px;border-radius:11px;padding:6px">
+              <div style="display:inline-flex;flex-direction:column;gap:3px"><span class="pill" style="background:#4f8ef7;padding:3px 16px;text-align:center;font-weight:800">A</span><span class="pill" style="background:#b06eff;padding:3px 16px;text-align:center;font-weight:800">C</span></div>
+              <div class="mono" style="font-size:.6rem;color:var(--green);margin-top:6px"><b>A › C</b></div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:1.4rem;color:var(--green);margin:12px 0 4px">↓</div>
+        <div style="display:flex;justify-content:center">
+          <div style="text-align:center;outline:2px solid var(--green);outline-offset:5px;border-radius:11px;padding:6px"><span class="mono" style="font-size:.66rem;color:var(--text);font-weight:800;letter-spacing:1px">SOCIETY · A vs C</span><div style="display:inline-flex;flex-direction:column;gap:3px;margin-top:5px"><span class="pill" style="background:#4f8ef7;padding:4px 18px;text-align:center;font-weight:800">A</span><span class="pill" style="background:#b06eff;padding:4px 18px;text-align:center;font-weight:800">C</span></div><div class="mono" style="font-size:.6rem;color:var(--green);margin-top:6px">= the pivot's A › C</div></div>
+        </div>
+        <div class="muted" style="font-size:.78rem;text-align:center;margin-top:13px;line-height:1.6">B is at an <b>extreme</b> for everyone but the pivot, so Step 1 + IIA pin society to <b style="color:#4f8ef7">A</b>›<span style="color:#ff6b6b">B</span>›<b style="color:#b06eff">C</b>. Voters 1, 2, 4, 5 <em>disagree</em> about A vs C — yet society's <b style="color:#4f8ef7">A</b>/<b style="color:#b06eff">C</b> order copies the <b style="color:var(--gold)">pivot's</b> (ringed). The pivot dictates A vs C.</div>
+      </div>
+      <div class="glass"><p><b style="color:var(--gold)">Step 4 · That's a dictatorship.</b> With 3+ options, the only rule satisfying Unanimity&nbsp;+&nbsp;IIA is one where a single voter always gets their way. No "fair" rule survives — which is exactly Arrow's theorem. <span style="color:var(--muted)">∎</span></p></div>
+      <div class="viz">
+        <div class="viz-title">The dictator · society = one voter's ballot</div>
+        <div class="row" style="justify-content:center;gap:11px;flex-wrap:wrap;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px"><span class="mono" style="font-size:.6rem;color:var(--muted)">Voter 1</span><div style="display:inline-flex;flex-direction:column;gap:2px;opacity:.3"><span class="pill" style="background:#4f8ef7;padding:3px 11px;font-size:.74rem">A</span><span class="pill" style="background:#ff6b6b;padding:3px 11px;font-size:.74rem">B</span><span class="pill" style="background:#b06eff;padding:3px 11px;font-size:.74rem">C</span></div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px"><span class="mono" style="font-size:.6rem;color:var(--muted)">Voter 2</span><div style="display:inline-flex;flex-direction:column;gap:2px;opacity:.3"><span class="pill" style="background:#b06eff;padding:3px 11px;font-size:.74rem">C</span><span class="pill" style="background:#4f8ef7;padding:3px 11px;font-size:.74rem">A</span><span class="pill" style="background:#ff6b6b;padding:3px 11px;font-size:.74rem">B</span></div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px;outline:2px solid var(--gold);outline-offset:4px;border-radius:10px;padding:5px"><span class="mono" style="font-size:.6rem;color:var(--gold);font-weight:700">Voter 3 ★ dictator</span><div style="display:inline-flex;flex-direction:column;gap:2px"><span class="pill" style="background:#ff6b6b;padding:3px 11px;font-size:.74rem">B</span><span class="pill" style="background:#4f8ef7;padding:3px 11px;font-size:.74rem">A</span><span class="pill" style="background:#b06eff;padding:3px 11px;font-size:.74rem">C</span></div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px"><span class="mono" style="font-size:.6rem;color:var(--muted)">Voter 4</span><div style="display:inline-flex;flex-direction:column;gap:2px;opacity:.3"><span class="pill" style="background:#b06eff;padding:3px 11px;font-size:.74rem">C</span><span class="pill" style="background:#ff6b6b;padding:3px 11px;font-size:.74rem">B</span><span class="pill" style="background:#4f8ef7;padding:3px 11px;font-size:.74rem">A</span></div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px"><span class="mono" style="font-size:.6rem;color:var(--muted)">Voter 5</span><div style="display:inline-flex;flex-direction:column;gap:2px;opacity:.3"><span class="pill" style="background:#4f8ef7;padding:3px 11px;font-size:.74rem">A</span><span class="pill" style="background:#b06eff;padding:3px 11px;font-size:.74rem">C</span><span class="pill" style="background:#ff6b6b;padding:3px 11px;font-size:.74rem">B</span></div></div>
+        </div>
+        <div style="text-align:center;font-size:1.4rem;color:var(--gold);margin:10px 0 4px">↓</div>
+        <div style="display:flex;justify-content:center"><div style="text-align:center"><span class="mono" style="font-size:.7rem;color:var(--text);font-weight:800;letter-spacing:1px">SOCIETY</span><div style="display:inline-flex;flex-direction:column;gap:3px;margin-top:5px"><span class="pill" style="background:#ff6b6b;padding:4px 16px;text-align:center;font-weight:800">B</span><span class="pill" style="background:#4f8ef7;padding:4px 16px;text-align:center;font-weight:800">A</span><span class="pill" style="background:#b06eff;padding:4px 16px;text-align:center;font-weight:800">C</span></div></div></div>
+        <div class="muted" style="font-size:.78rem;text-align:center;margin-top:12px">Society's ranking is an exact copy of the <b style="color:var(--gold)">dictator's</b> ballot — the other four voters never change the outcome.</div>
+      </div>
+    </section>
+    <section>
+      <div class="glass" style="margin-top:0"><p><strong style="color:var(--coral)">Gibbard–Satterthwaite</strong> adds the strategic twist: every non-trivial rule is also <strong>manipulable</strong> — some voter can get a better outcome by ranking insincerely. There is no perfect voting system; each rule simply trades off <em>different</em> harms.</p></div>
+    </section>
+    <div class="nav-footer"><button class="btn" onclick="switchTab(5)">← Kemeny's Rule</button><button class="btn primary" onclick="switchTab(7)">Next: Voting in AI →</button></div>
+  </div>
+
+  <!-- ══ PANEL 9 — VOTING IN AI ══ -->
+  <div class="panel" id="pAI">
+    <section>
+      <div class="section-title">Voting in AI — many models, one decision</div>
+      <div class="glass"><p>Aggregating many independent opinions isn't only how a group elects a leader — it is one of the most reliable tricks in machine learning. Independent models (or agents) each cast a <strong style="color:var(--coral)">vote</strong>; combined, they cancel one another's errors and beat any single member. Below are four places where the exact ideas from this lab — <strong>plurality</strong>, <strong>majority</strong>, <strong>weighted</strong> and <strong style="color:var(--gold)">"soft"</strong> votes — quietly power real AI systems.</p></div>
+    </section>
+    <section>
+      <div class="ai-grid">
+
+        <!-- ░░ 1 · sklearn VotingClassifier ░░ -->
+        <div class="ai-card">
+          <div class="ai-head"><div class="ai-ico">🗳️</div><div><div class="ai-tag">scikit-learn · supervised ML</div><h3>Ensemble Voting Classifiers</h3></div></div>
+          <p>Train several different classifiers, then let them vote on each prediction. <strong style="color:var(--coral)">Hard voting</strong> takes the <em>majority predicted label</em> (plurality of the rule book above). <strong style="color:var(--gold)">Soft voting</strong> averages the classifiers' predicted <em>class probabilities</em> and picks the arg-max — so a single very confident model can outweigh two lukewarm ones, much like a weighted Borda score. Soft voting usually wins when the base models are well-calibrated.</p>
+          <p style="margin-top:6px"><a href="https://www.geeksforgeeks.org/machine-learning/voting-classifier/" target="_blank" rel="noopener" style="color:var(--blue);font-weight:700;text-decoration:none;font-size:.82rem">📖 Read more: Voting Classifier on GeeksforGeeks ↗</a></p>
+          <div class="viz">
+            <div class="viz-title">Live · three classifiers vote on classes A vs B</div>
+            <div class="row" style="justify-content:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+              <span class="muted" style="font-size:.74rem">Clf&nbsp;1 confidence in A</span>
+              <input class="airange" style="max-width:230px" type="range" min="0.5" max="0.99" step="0.01" value="0.99" oninput="aiSet(this.value)">
+              <span class="mono" id="ai-c1val" style="font-weight:700;color:var(--gold)">0.99</span>
+            </div>
+            <div id="ai-ensemble"></div>
+          </div>
+          <div class="codeblock"><span class="code-lang">python</span><button class="copybtn" onclick="copyCode(this)">copy</button><code class="code-body"><span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> <span class="fn">VotingClassifier</span>
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> <span class="fn">LogisticRegression</span>
+<span class="kw">from</span> sklearn.svm <span class="kw">import</span> <span class="fn">SVC</span>
+<span class="kw">from</span> sklearn.tree <span class="kw">import</span> <span class="fn">DecisionTreeClassifier</span>
+
+clf1 = <span class="fn">LogisticRegression</span>()
+clf2 = <span class="fn">SVC</span>(probability=<span class="kw">True</span>)        <span class="cm"># soft voting needs probabilities</span>
+clf3 = <span class="fn">DecisionTreeClassifier</span>()
+
+<span class="cm"># Hard voting -> majority predicted label</span>
+hard = <span class="fn">VotingClassifier</span>(
+    estimators=[(<span class="st">'lr'</span>, clf1), (<span class="st">'svc'</span>, clf2), (<span class="st">'dt'</span>, clf3)],
+    voting=<span class="st">'hard'</span>)
+
+<span class="cm"># Soft voting -> arg-max of the averaged class probabilities</span>
+soft = <span class="fn">VotingClassifier</span>(
+    estimators=[(<span class="st">'lr'</span>, clf1), (<span class="st">'svc'</span>, clf2), (<span class="st">'dt'</span>, clf3)],
+    voting=<span class="st">'soft'</span>, weights=[2, 1, 1])   <span class="cm"># optionally weight each model</span>
+
+soft.fit(X_train, y_train)
+<span class="kw">print</span>(soft.predict(X_test))
+<span class="kw">print</span>(soft.score(X_test, y_test))</code></div>
+        </div>
+
+        <!-- ░░ 2 · MARL ░░ -->
+        <div class="ai-card">
+          <div class="ai-head"><div class="ai-ico">🤖</div><div><div class="ai-tag">MARL · cooperative control</div><h3>Multi-Agent Reinforcement Learning</h3></div></div>
+          <p>In cooperative <strong>multi-agent RL</strong>, decentralised agents each hold their own policy yet must commit to <em>one</em> joint action — otherwise they pull in different directions. A simple, robust coordinator is a <strong style="color:var(--coral)">vote</strong>: every agent proposes the action its policy prefers, and the team executes the <strong>plurality</strong> choice. This breaks symmetry (a tie stalls the team — exactly the split-vote problem from the Intro tab), aligns swarm robots on a shared target, and turns many noisy local policies into one stable team move.</p>
+          <div class="viz">
+            <div class="viz-title">5 agents propose a move · plurality wins</div>
+            <div class="row" style="justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:18px">
+              <div class="agent"><div class="av">🤖</div><span class="ar" style="color:#51cf66">→ E</span></div>
+              <div class="agent"><div class="av">🤖</div><span class="ar" style="color:#51cf66">→ E</span></div>
+              <div class="agent"><div class="av">🤖</div><span class="ar" style="color:#7b7fa0">↑ N</span></div>
+              <div class="agent"><div class="av">🤖</div><span class="ar" style="color:#51cf66">→ E</span></div>
+              <div class="agent"><div class="av">🤖</div><span class="ar" style="color:#7b7fa0">↓ S</span></div>
+            </div>
+            <div class="bars" style="max-width:460px;margin:0 auto">
+              <div class="barrow"><span style="font-weight:700">↑ North</span><div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:33%;background:#7b7fa0"></div></div><span class="mono" style="text-align:right;font-weight:700">1</span></div>
+              <div class="barrow"><span style="font-weight:700">→ East</span><div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:100%;background:linear-gradient(180deg,#7dffa8,#2fcf63)"></div></div><span class="mono" style="text-align:right;font-weight:700">3</span></div>
+              <div class="barrow"><span style="font-weight:700">↓ South</span><div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:33%;background:#7b7fa0"></div></div><span class="mono" style="text-align:right;font-weight:700">1</span></div>
+              <div class="barrow"><span style="font-weight:700">← West</span><div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:2%;background:#7b7fa0"></div></div><span class="mono" style="text-align:right;font-weight:700">0</span></div>
+            </div>
+            <div style="text-align:center"><div class="aiwin" style="margin-top:14px">🏁 Team action: move <b>East</b> — 3 of 5 agents agree</div></div>
+          </div>
+          <div class="codeblock"><span class="code-lang">python</span><button class="copybtn" onclick="copyCode(this)">copy</button><code class="code-body"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> collections <span class="kw">import</span> <span class="fn">Counter</span>
+
+<span class="cm"># Each cooperative agent proposes one discrete team action.</span>
+<span class="kw">def</span> <span class="fn">agent_action</span>(policy, obs):
+    <span class="kw">return</span> <span class="kw">int</span>(np.argmax(policy(obs)))      <span class="cm"># greedy local proposal</span>
+
+<span class="kw">def</span> <span class="fn">vote_team_action</span>(agents, obs):
+    proposals = [<span class="fn">agent_action</span>(a.policy, obs) <span class="kw">for</span> a <span class="kw">in</span> agents]
+    <span class="cm"># Plurality vote -> the action most agents agree on (ties: lowest id)</span>
+    team = <span class="fn">Counter</span>(proposals).most_common(<span class="st">1</span>)[<span class="st">0</span>][<span class="st">0</span>]
+    <span class="kw">return</span> team, proposals
+
+team, proposals = <span class="fn">vote_team_action</span>(agents, obs)
+<span class="kw">print</span>(<span class="st">"proposals:"</span>, proposals, <span class="st">"-> team:"</span>, team)</code></div>
+        </div>
+
+        <!-- ░░ 3 · Bootstrapped DQN ░░ -->
+        <div class="ai-card">
+          <div class="ai-head"><div class="ai-ico">🎲</div><div><div class="ai-tag">deep RL · exploration via ensembles</div><h3>Bootstrapped DQN</h3></div></div>
+          <p>A plain DQN can only explore with crude ε-greedy randomness. <strong>Bootstrapped DQN</strong> (Osband&nbsp;et&nbsp;al., 2016) instead trains an <strong style="color:var(--coral)">ensemble of K Q-value "heads"</strong> on one shared network torso, each head fit to its own bootstrap sample of the replay buffer — so the heads disagree exactly where data is scarce. Two votes fall out of this. To <strong>act</strong>, it samples a single head per episode and follows it greedily — coherent, temporally-extended "deep" exploration (posterior sampling). To <strong style="color:var(--gold)">exploit</strong>, the heads take a <strong>majority vote</strong> over their greedy action. Their <em>disagreement</em> is a free estimate of <strong>epistemic uncertainty</strong> — pointing the agent at states still worth exploring.</p>
+          <p style="margin-top:6px"><a href="https://arxiv.org/pdf/1602.04621" target="_blank" rel="noopener" style="color:var(--blue);font-weight:700;text-decoration:none;font-size:.82rem">📄 Paper: Deep Exploration via Bootstrapped DQN (Osband et al., 2016) ↗</a></p>
+          <div class="viz">
+            <div class="viz-title">Network · shared torso → K Q-heads · explore vs exploit</div>
+            <svg viewBox="0 0 700 364" width="100%" style="max-width:680px;display:block;margin:0 auto;overflow:visible" role="img" aria-label="Bootstrapped DQN architecture: an observation feeds a shared torso that fans out into 5 Q-heads. Exploration follows one randomly sampled head; exploitation takes a majority vote of all heads.">
+              <defs>
+                <linearGradient id="adqTorso" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a3a6b"/><stop offset="1" stop-color="#16203f"/></linearGradient>
+                <marker id="adqArr" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="11" refX="9" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#7b8bbf"/></marker>
+                <marker id="adqG" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" refX="10" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#ffd43b"/></marker>
+                <marker id="adqGr" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" refX="10" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#51cf66"/></marker>
+              </defs>
+              <!-- input -->
+              <rect x="18" y="147" width="58" height="44" rx="10" fill="#141528" stroke="#45507d"/>
+              <text x="47" y="166" text-anchor="middle" font-family="Syne,sans-serif" font-size="15" font-weight="800" fill="#cfd6ff">s</text>
+              <text x="55" y="170" text-anchor="middle" font-family="Syne,sans-serif" font-size="10" font-weight="700" fill="#cfd6ff">t</text>
+              <text x="47" y="184" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#7b7fa0">obs</text>
+              <text x="47" y="208" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#7b7fa0">observation</text>
+              <line x1="76" y1="169" x2="116" y2="169" stroke="#7b8bbf" stroke-width="2" marker-end="url(#adqArr)"/>
+              <!-- shared torso -->
+              <rect x="120" y="120" width="160" height="98" rx="12" fill="url(#adqTorso)" stroke="#45507d"/>
+              <line x1="158" y1="128" x2="158" y2="210" stroke="rgba(255,255,255,.12)" stroke-width="2"/>
+              <line x1="200" y1="128" x2="200" y2="210" stroke="rgba(255,255,255,.12)" stroke-width="2"/>
+              <line x1="242" y1="128" x2="242" y2="210" stroke="rgba(255,255,255,.12)" stroke-width="2"/>
+              <text x="200" y="164" text-anchor="middle" font-family="Syne,sans-serif" font-size="14" font-weight="800" fill="#dfe4ff">shared torso</text>
+              <text x="200" y="182" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="#aab2e0">conv + dense</text>
+              <text x="200" y="238" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#7b7fa0">shared weights</text>
+              <!-- fan-out: torso -> heads (gold = the sampled head's path) -->
+              <line x1="280" y1="169" x2="430" y2="121" stroke="#45507d" stroke-width="2" opacity=".7"/>
+              <line x1="280" y1="169" x2="430" y2="169" stroke="#45507d" stroke-width="2" opacity=".7"/>
+              <line x1="280" y1="169" x2="430" y2="217" stroke="#45507d" stroke-width="2" opacity=".7"/>
+              <line x1="280" y1="169" x2="430" y2="265" stroke="#45507d" stroke-width="2" opacity=".7"/>
+              <line x1="280" y1="169" x2="430" y2="73" stroke="#ffd43b" stroke-width="2.6"/>
+              <!-- right-edge ticks into the exploitation brace -->
+              <line x1="542" y1="73" x2="566" y2="73" stroke="#51cf66" stroke-width="1.6" opacity=".85"/>
+              <line x1="542" y1="121" x2="566" y2="121" stroke="#51cf66" stroke-width="1.6" opacity=".85"/>
+              <line x1="542" y1="169" x2="566" y2="169" stroke="#51cf66" stroke-width="1.6" opacity=".85"/>
+              <line x1="542" y1="217" x2="566" y2="217" stroke="#51cf66" stroke-width="1.6" opacity=".85"/>
+              <line x1="542" y1="265" x2="566" y2="265" stroke="#51cf66" stroke-width="1.6" opacity=".85"/>
+              <!-- heads -->
+              <rect x="430" y="56"  width="112" height="34" rx="9" fill="#ffd43b" stroke="#fff3b0" stroke-width="2"/>
+              <rect x="430" y="104" width="112" height="34" rx="9" fill="#00d4aa"/>
+              <rect x="430" y="152" width="112" height="34" rx="9" fill="#00d4aa"/>
+              <rect x="430" y="200" width="112" height="34" rx="9" fill="#00d4aa"/>
+              <rect x="430" y="248" width="112" height="34" rx="9" fill="#00d4aa"/>
+              <g font-family="'JetBrains Mono',monospace" font-size="12" font-weight="800" fill="#08090f" text-anchor="middle">
+                <text x="486" y="77">★ Q-head 1</text>
+                <text x="486" y="125">Q-head 2</text>
+                <text x="486" y="173">Q-head 3</text>
+                <text x="486" y="221">Q-head 4</text>
+                <text x="486" y="269">Q-head 5</text>
+              </g>
+              <!-- exploitation brace -->
+              <line x1="566" y1="73" x2="566" y2="265" stroke="#51cf66" stroke-width="2.4"/>
+              <path d="M566,265 L506,332" stroke="#51cf66" stroke-width="2" fill="none" marker-end="url(#adqGr)"/>
+              <!-- exploration banner + arrow to the sampled head -->
+              <rect x="300" y="4" width="384" height="24" rx="12" fill="rgba(255,212,59,.13)" stroke="#ffd43b"/>
+              <text x="492" y="20" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10.5" font-weight="700" fill="#ffd43b">🎲 EXPLORATION — follow ONE sampled head / episode</text>
+              <path d="M492,28 L487,52" stroke="#ffd43b" stroke-width="2" fill="none" stroke-dasharray="5 4" marker-end="url(#adqG)"/>
+              <!-- exploitation banner -->
+              <rect x="300" y="332" width="384" height="24" rx="12" fill="rgba(81,207,102,.13)" stroke="#51cf66"/>
+              <text x="492" y="348" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10.5" font-weight="700" fill="#51cf66">🗳️ EXPLOITATION — majority vote of all K heads</text>
+            </svg>
+            <div class="row" style="justify-content:center;gap:18px;flex-wrap:wrap;margin-top:8px;font-size:.74rem;color:var(--muted)">
+              <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#ffd43b;vertical-align:-1px;margin-right:5px"></span>Explore: 1 randomly-sampled head (resampled each episode)</span>
+              <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#51cf66;vertical-align:-1px;margin-right:5px"></span>Exploit: majority vote across all heads</span>
+            </div>
+          </div>
+          <div class="viz">
+            <div class="viz-title">K = 5 Q-heads vote on the next action</div>
+            <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+              <span class="votechip" style="border-color:#00d4aa;color:#00d4aa">Head 1 → Right</span>
+              <span class="votechip" style="border-color:#00d4aa;color:#00d4aa">Head 2 → Right</span>
+              <span class="votechip" style="border-color:#b06eff;color:#b06eff">Head 3 → Jump</span>
+              <span class="votechip" style="border-color:#00d4aa;color:#00d4aa">Head 4 → Right</span>
+              <span class="votechip" style="border-color:#4f8ef7;color:#4f8ef7">Head 5 → Left</span>
+            </div>
+            <div class="bars" style="max-width:460px;margin:0 auto">
+              <div class="barrow"><span class="cand"><span class="dot" style="background:#4f8ef7"></span>Left</span><div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:33%;background:#4f8ef7"></div></div><span class="mono" style="text-align:right;font-weight:700">1</span></div>
+              <div class="barrow"><span class="cand"><span class="dot" style="background:#00d4aa"></span>Right</span><div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:100%;background:linear-gradient(180deg,#7dffa8,#2fcf63)"></div></div><span class="mono" style="text-align:right;font-weight:700">3</span></div>
+              <div class="barrow"><span class="cand"><span class="dot" style="background:#b06eff"></span>Jump</span><div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:33%;background:#b06eff"></div></div><span class="mono" style="text-align:right;font-weight:700">1</span></div>
+            </div>
+            <div style="text-align:center">
+              <div class="aiwin" style="margin-top:14px">🏆 Exploit · majority vote → <b>Right</b> (3 of 5 heads)</div>
+              <div class="aiwin warn" style="margin-top:10px">🎲 Heads split 3·1·1 → high uncertainty · sample one head &amp; <b>explore</b></div>
+            </div>
+          </div>
+          <div class="codeblock"><span class="code-lang">python</span><button class="copybtn" onclick="copyCode(this)">copy</button><code class="code-body"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Bootstrapped DQN keeps K Q-heads on a shared torso, each</span>
+<span class="cm"># trained on its own bootstrap mask of the replay buffer.</span>
+K = 10
+
+<span class="kw">def</span> <span class="fn">act_explore</span>(q_heads, obs):
+    head = np.random.randint(K)              <span class="cm"># sample ONE head per episode</span>
+    <span class="kw">return</span> <span class="kw">int</span>(np.argmax(q_heads[head](obs)))  <span class="cm"># follow it -> deep exploration</span>
+
+<span class="kw">def</span> <span class="fn">act_exploit</span>(q_heads, obs):
+    votes = [<span class="kw">int</span>(np.argmax(h(obs))) <span class="kw">for</span> h <span class="kw">in</span> q_heads]
+    <span class="kw">return</span> np.bincount(votes).argmax()       <span class="cm"># ensemble majority vote</span>
+
+<span class="kw">def</span> <span class="fn">uncertainty</span>(q_heads, obs):
+    qs = np.stack([h(obs) <span class="kw">for</span> h <span class="kw">in</span> q_heads])
+    <span class="kw">return</span> qs.std(<span class="st">0</span>).mean()                  <span class="cm"># disagreement = epistemic uncertainty</span></code></div>
+        </div>
+
+        <!-- ░░ 4 · LLM self-consistency ░░ -->
+        <div class="ai-card">
+          <div class="ai-head"><div class="ai-ico">🧠</div><div><div class="ai-tag">LLM reasoning · majority answer</div><h3>Self-Consistency in LLMs</h3></div></div>
+          <p>Ask a language model to reason step-by-step, then <strong>sample several independent chains of thought</strong> at non-zero temperature. Different chains may slip on different steps, but the <em>correct</em> answer tends to be reached by the most paths. Returning the <strong style="color:var(--coral)">majority answer</strong> across samples — plain plurality voting — gives a large accuracy boost over any single chain.</p>
+          <div class="viz">
+            <div class="viz-title">5 sampled reasoning chains · majority answer wins</div>
+            <div style="max-width:520px;margin:0 auto">
+              <div class="chain"><span class="mono muted" style="min-width:78px;font-size:.7rem">Sample&nbsp;1</span><span class="step"></span><span class="step"></span><span class="step"></span><span class="step"></span><span class="ans" style="background:#51cf66">42</span></div>
+              <div class="chain"><span class="mono muted" style="min-width:78px;font-size:.7rem">Sample&nbsp;2</span><span class="step"></span><span class="step"></span><span class="step"></span><span class="step"></span><span class="ans" style="background:#51cf66">42</span></div>
+              <div class="chain"><span class="mono muted" style="min-width:78px;font-size:.7rem">Sample&nbsp;3</span><span class="step"></span><span class="step"></span><span class="step"></span><span class="ans" style="background:#ff6b6b">37</span></div>
+              <div class="chain"><span class="mono muted" style="min-width:78px;font-size:.7rem">Sample&nbsp;4</span><span class="step"></span><span class="step"></span><span class="step"></span><span class="step"></span><span class="step"></span><span class="ans" style="background:#51cf66">42</span></div>
+              <div class="chain"><span class="mono muted" style="min-width:78px;font-size:.7rem">Sample&nbsp;5</span><span class="step"></span><span class="step"></span><span class="step"></span><span class="ans" style="background:#51cf66">42</span></div>
+            </div>
+            <div style="text-align:center"><div class="aiwin" style="margin-top:14px">🏆 Majority answer: <b>42</b> &nbsp;<span style="color:var(--muted);font-weight:600;font-size:.78rem">(42 ×4 · 37 ×1)</span></div></div>
+          </div>
+        </div>
+
+        <!-- ░░ 5 · Random forest ░░ -->
+        <div class="ai-card">
+          <div class="ai-head"><div class="ai-ico">🌳</div><div><div class="ai-tag">bagging · majority class</div><h3>Random Forests &amp; Bagging</h3></div></div>
+          <p>A random forest trains many decision trees, each on a bootstrap sample of the data and a random subset of features, so the trees make <em>uncorrelated</em> errors. For a prediction every tree votes for a class and the forest returns the <strong style="color:var(--coral)">majority</strong> (regression averages instead). Decorrelated voters are the whole point — it's the variance-reduction argument behind "the wisdom of crowds."</p>
+          <div class="viz">
+            <div class="viz-title">9 trees vote on the iris species · majority class wins</div>
+            <div class="row" style="justify-content:center;gap:15px;flex-wrap:wrap;margin-bottom:16px">
+              <div class="tree">🌳<span class="leaf" style="background:#4f8ef7"></span></div>
+              <div class="tree">🌳<span class="leaf" style="background:#00d4aa"></span></div>
+              <div class="tree">🌳<span class="leaf" style="background:#4f8ef7"></span></div>
+              <div class="tree">🌳<span class="leaf" style="background:#4f8ef7"></span></div>
+              <div class="tree">🌳<span class="leaf" style="background:#b06eff"></span></div>
+              <div class="tree">🌳<span class="leaf" style="background:#00d4aa"></span></div>
+              <div class="tree">🌳<span class="leaf" style="background:#4f8ef7"></span></div>
+              <div class="tree">🌳<span class="leaf" style="background:#00d4aa"></span></div>
+              <div class="tree">🌳<span class="leaf" style="background:#4f8ef7"></span></div>
+            </div>
+            <div class="bars" style="max-width:460px;margin:0 auto">
+              <div class="barrow"><span class="cand"><span class="dot" style="background:#4f8ef7"></span>Setosa</span><div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:100%;background:linear-gradient(180deg,#7dffa8,#2fcf63)"></div></div><span class="mono" style="text-align:right;font-weight:700">5</span></div>
+              <div class="barrow"><span class="cand"><span class="dot" style="background:#00d4aa"></span>Versicolor</span><div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:60%;background:#00d4aa"></div></div><span class="mono" style="text-align:right;font-weight:700">3</span></div>
+              <div class="barrow"><span class="cand"><span class="dot" style="background:#b06eff"></span>Virginica</span><div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:20%;background:#b06eff"></div></div><span class="mono" style="text-align:right;font-weight:700">1</span></div>
+            </div>
+            <div style="text-align:center"><div class="aiwin" style="margin-top:14px">🏆 Forest prediction: <b>Setosa</b> — 5 of 9 trees</div></div>
+          </div>
+        </div>
+
+      </div>
+      <div class="glass" style="margin-top:22px"><p><strong style="color:var(--gold)">The same rules, everywhere.</strong> Hard voting <em>is</em> plurality; soft voting is a weighted score in the spirit of Borda; MARL action-voting and leader election are plurality consensus; self-consistency and random forests are majority rule. Every method you toured in this lab reappears the moment an AI system has to turn many opinions into one decision — and so do its paradoxes.</p></div>
+    </section>
+    <div class="nav-footer"><button class="btn" onclick="switchTab(6)">← Arrow's Theorem</button><button class="btn primary" onclick="switchTab(8)">Next: Compare →</button></div>
+  </div>
+
+  <!-- ══ PANEL 12 — COMPARE / SANDBOX ══ -->
+  <div class="panel" id="pCMP">
+    <section>
+      <div class="section-title">Compare — your election, every rule at once</div>
+      <div class="glass"><p>Edit the ballots freely — type bloc sizes, reorder preferences with <strong>◀ ▶</strong>, add or remove blocs — and every voting rule recomputes its winner <strong>side by side</strong>, live. This is the same shared election that drives all the other tabs (the STV seat count is set on the STV tab).</p></div>
+    </section>
+    <section>
+      <div class="section-title">Inputs</div>
+      <div class="muted" style="font-size:.66rem;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;margin-bottom:8px">Candidates — rename, add or remove</div>
+      <div id="cmp-cands" class="row" style="margin-bottom:16px"></div>
+      <div class="muted" style="font-size:.66rem;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;margin-bottom:8px">Voter blocs &amp; presets</div>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn" onclick="cmpPreset('tn')">Tennessee</button>
+        <button class="btn" onclick="cmpPreset('cycle')">Condorcet cycle</button>
+        <button class="btn" onclick="cmpPreset('spoiler')">Spoiler</button>
+        <button class="btn" onclick="cmpPreset('unanimous')">Near-unanimous</button>
+        <button class="btn primary" onclick="cmpAddBloc()">+ Add bloc</button>
+      </div>
+      <div id="cmp-editor" class="profile-grid"></div>
+      <div class="muted" style="font-size:.76rem;margin-top:10px">Total voters: <strong id="cmp-tot" style="color:var(--text)">—</strong> · STV seats <strong id="cmp-seats" style="color:var(--text)">—</strong></div>
+    </section>
+    <section>
+      <div class="section-title">Results — every method compared</div>
+      <div class="scene3d"><div class="scene"><div id="cmp-table"></div></div></div>
+      <div class="glass" style="margin-top:14px" id="cmp-note"></div>
+      <div id="cmp-detail" style="display:none">
+        <div class="section-title" id="cmp-dettitle" style="font-size:1rem;margin-top:18px">Step-by-step</div>
+        <div class="scene3d"><div class="scene" id="sccmp"></div></div>
+        <div class="stepbar" id="sbcmp"></div>
+      </div>
+    </section>
+    <div class="nav-footer"><button class="btn" onclick="switchTab(7)">← Voting in AI</button><a class="btn primary" href="../index.html">Back to AI-Lab</a></div>
+  </div>
+</div>
+
+<script>
+/* ── particles ── */
+(function(){const c=document.getElementById('particles'),x=c.getContext('2d');let W,H,P=[];
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight;P=Array.from({length:48},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,o:Math.random()*.4+.1,h:Math.random()<.5?'255,107,107':'255,212,59'}));}
+rs();addEventListener('resize',rs);
+(function d(){x.clearRect(0,0,W,H);P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fillStyle='rgba('+p.h+','+p.o+')';x.fill();});for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++){const dx=P[i].x-P[j].x,dy=P[i].y-P[j].y,dd=Math.hypot(dx,dy);if(dd<120){x.beginPath();x.moveTo(P[i].x,P[i].y);x.lineTo(P[j].x,P[j].y);x.strokeStyle='rgba('+P[i].h+','+(.09*(1-dd/120))+')';x.stroke();}}requestAnimationFrame(d);})();})();
+
+/* ── tabs ── */
+const TABS=9;let cur=0;
+function switchTab(n){
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+  document.getElementById('progress-bar').style.width=((n+1)/TABS*100)+'%';
+  cur=n; render(); window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ── model ── */
+let CANDS=[
+  {n:'C',      c:'#4f8ef7'},
+  {n:'Rust',   c:'#00d4aa'},
+  {n:'Java',   c:'#ffd43b'},
+  {n:'Python', c:'#b06eff'}
+];
+const DEF_CANDS=CANDS.map(c=>({n:c.n,c:c.c}));
+const PALETTE=['#4f8ef7','#00d4aa','#ffd43b','#b06eff','#ff6b6b','#51cf66','#22d3ee'];
+let M=CANDS.length;
+function syncCands(){ M=CANDS.length;
+  if(typeof APPROVE_K!=='undefined') APPROVE_K=Math.max(1,Math.min(APPROVE_K,M-1));
+  if(typeof STV_SEATS!=='undefined') STV_SEATS=Math.max(1,Math.min(STV_SEATS,M-1)); }
+function candAdd(){ cmpData(); if(CMP_C.length>=6) return; const used=CMP_C.map(c=>c.c);
+  const col=PALETTE.find(c=>used.indexOf(c)<0)||PALETTE[CMP_C.length%PALETTE.length];
+  const ni=CMP_C.length; CMP_C.push({n:'Cand '+(ni+1),c:col});
+  CMP_P.forEach(b=>b.order.push(ni)); render(); }
+function candDel(ci){ cmpData(); if(CMP_C.length<=1) return; CMP_C.splice(ci,1);
+  CMP_P.forEach(b=>{ b.order=b.order.filter(x=>x!==ci).map(x=>x>ci?x-1:x); }); render(); }
+function candName(ci,v){ cmpData(); v=(v||'').trim(); if(v) CMP_C[ci].n=v; render(); }
+// each bloc: {count, order:[candIdx ...]} best→worst
+let PROFILE=[];
+const PRESETS={
+  tn:[{count:42,order:[0,1,2,3]},{count:26,order:[1,2,3,0]},{count:15,order:[2,3,1,0]},{count:17,order:[3,2,1,0]}],
+  cycle:[{count:34,order:[0,1,2,3]},{count:33,order:[1,2,0,3]},{count:33,order:[2,0,1,3]}],
+  spoiler:[{count:45,order:[0,2,1,3]},{count:40,order:[1,2,0,3]},{count:15,order:[2,1,0,3]}],
+  unanimous:[{count:80,order:[1,0,2,3]},{count:12,order:[0,1,2,3]},{count:8,order:[2,1,0,3]}]
+};
+function loadPreset(k){ CANDS.length=0; DEF_CANDS.forEach(c=>CANDS.push({n:c.n,c:c.c})); syncCands(); PROFILE=PRESETS[k].map(b=>({count:b.count,order:b.order.slice()})); render(); }
+/* ── Compare tab = independent sandbox (its own candidates + ballots) ── */
+let CMP_C=null, CMP_P=null, CMP_SEL=null;
+function cmpData(){ if(!CMP_C){ CMP_C=DEF_CANDS.map(c=>({n:c.n,c:c.c})); CMP_P=PRESETS.tn.map(b=>({count:b.count,order:b.order.slice()})); } }
+function cmpPreset(k){ cmpData(); CMP_C.length=0; DEF_CANDS.forEach(c=>CMP_C.push({n:c.n,c:c.c})); CMP_P=PRESETS[k].map(b=>({count:b.count,order:b.order.slice()})); render(); }
+function cmpShow(m){ CMP_SEL=(CMP_SEL===m)?null:m; render(); }
+function cmpFrames(m){
+  if(m==='plu')  return fTally(pluC,' votes','First-choice tally');
+  if(m==='bor')  return fTally(borC,' pts','Borda points');
+  if(m==='cond') return fCond();
+  if(m==='irv')  return fIRV();
+  if(m==='ro')   return fRunoff();
+  if(m==='stv')  return fSTV();
+  if(m==='app')  return fTally(appC,' appr','Approvals (top '+APPROVE_K+')');
+  if(m==='km')   return fKemeny();
+  return null;
+}
+PROFILE=PRESETS.tn.map(b=>({count:b.count,order:b.order.slice()}));   // initial profile (render() at end paints)
+
+let APPROVE_K=2;
+function setK(d){ APPROVE_K=Math.max(1,Math.min(M-1,APPROVE_K+d)); render(); }
+function changeBloc(i,d){ PROFILE[i].count=Math.max(0,PROFILE[i].count+d); render(); }
+const totalVoters=()=>PROFILE.reduce((s,b)=>s+b.count,0);
+
+/* ── voting rules ── */
+function plurality(){ const t=Array(M).fill(0); PROFILE.forEach(b=>t[b.order[0]]+=b.count); return t; }
+function borda(){ const t=Array(M).fill(0); PROFILE.forEach(b=>b.order.forEach((ci,rank)=>t[ci]+=(M-1-rank)*b.count)); return t; }
+function approval(k){ const t=Array(M).fill(0); PROFILE.forEach(b=>{ for(let r=0;r<k;r++) t[b.order[r]]+=b.count; }); return t; }
+function pairwise(a,b){ let A=0,B=0; PROFILE.forEach(bl=>{ (bl.order.indexOf(a)<bl.order.indexOf(b))?A+=bl.count:B+=bl.count; }); return [A,B]; }
+function condorcet(){
+  let win=-1;
+  for(let a=0;a<M;a++){ let beatsAll=true;
+    for(let b=0;b<M;b++){ if(a===b) continue; const [A,B]=pairwise(a,b); if(A<=B){beatsAll=false;break;} }
+    if(beatsAll){ win=a; break; } }
+  return win;
+}
+function irv(){
+  let alive=CANDS.map((_,i)=>i), rounds=[], tv=totalVoters();
+  while(true){
+    const t=Array(M).fill(0);
+    PROFILE.forEach(b=>{ const top=b.order.find(c=>alive.includes(c)); if(top!==undefined) t[top]+=b.count; });
+    const tallies=alive.map(c=>({c,v:t[c]})).sort((p,q)=>q.v-p.v);
+    const lead=tallies[0];
+    rounds.push({tallies:tallies.slice(),elim:null});
+    if(lead.v*2>tv || alive.length<=1){ return {rounds,winner:lead.c}; }
+    const min=Math.min(...tallies.map(o=>o.v));
+    const elim=tallies.filter(o=>o.v===min).pop().c;        // drop a lowest (ties: last)
+    rounds[rounds.length-1].elim=elim;
+    alive=alive.filter(c=>c!==elim);
+  }
+}
+function argmax(arr){ let bi=0; for(let i=1;i<arr.length;i++) if(arr[i]>arr[bi]) bi=i; const tie=arr.filter(v=>v===arr[bi]).length>1; return {idx:bi,tie}; }
+
+/* ── render helpers ── */
+const candEl=i=>`<span class="cand"><span class="dot" style="background:${CANDS[i].c}"></span>${CANDS[i].n}</span>`;
+function bars(elId,vals,winId,unit){
+  const mx=Math.max(1,...vals), el=document.getElementById(elId);
+  el.innerHTML=vals.map((v,i)=>`<div class="barrow">${candEl(i)}
+    <div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:${(v/mx*100).toFixed(1)}%;background:${CANDS[i].c}"></div></div>
+    <span class="mono" style="text-align:right;font-weight:700">${v}${unit||''}</span></div>`).join('');
+  if(winId){ const {idx,tie}=argmax(vals);
+    document.getElementById(winId).innerHTML = tie
+      ? `<div class="win-tag no-win">⚠ Tie — no single winner</div>`
+      : `<div class="win-tag">🏆 Winner: ${CANDS[idx].n}</div>`; }
+  return argmax(vals);
+}
+
+/* ── unified editors for the MAIN shared election (CANDS + PROFILE) ── */
+function mCandName(ci,v){ v=(v||'').trim(); if(v) CANDS[ci].n=v; render(); }
+function mCandAdd(){ if(CANDS.length>=6) return; const used=CANDS.map(c=>c.c);
+  const col=PALETTE.find(c=>used.indexOf(c)<0)||PALETTE[CANDS.length%PALETTE.length];
+  const ni=CANDS.length; CANDS.push({n:'Cand '+(ni+1),c:col});
+  PROFILE.forEach(b=>b.order.push(ni)); syncCands(); render(); }
+function mCandDel(ci){ if(CANDS.length<=2) return; CANDS.splice(ci,1);
+  PROFILE.forEach(b=>{ b.order=b.order.filter(x=>x!==ci).map(x=>x>ci?x-1:x); }); syncCands(); render(); }
+function mSetCount(i,v){ PROFILE[i].count=Math.max(0,parseInt(v,10)||0); render(); }
+function mAddBloc(){ PROFILE.push({count:10,order:CANDS.map((_,k)=>k)}); render(); }
+function mDelBloc(i){ if(PROFILE.length>1){ PROFILE.splice(i,1); render(); } }
+function mMove(i,r,d){ const o=PROFILE[i].order,j=r+d; if(j<0||j>=o.length) return; const x=o[r];o[r]=o[j];o[j]=x; render(); }
+let MDRAG=null;
+function mDragStart(e,b,r){ MDRAG={b:b,r:r}; if(e&&e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',b+':'+r);}catch(_){} } }
+function mDrop(e,b,r){ if(e) e.preventDefault(); if(!MDRAG||MDRAG.b!==b||MDRAG.r===r){ MDRAG=null; render(); return; } const o=PROFILE[b].order; const x=o.splice(MDRAG.r,1)[0]; o.splice(r,0,x); MDRAG=null; render(); }
+
+function candEditorHTML(){
+  return CANDS.map((c,ci)=>
+    '<div class="bloc" style="grid-template-columns:auto auto auto;flex:0 0 auto;padding:7px 9px;gap:7px">'+
+    '<span class="dot" style="width:14px;height:14px;background:'+c.c+'"></span>'+
+    '<input class="cinput" style="width:78px;text-align:left;padding:6px 7px" value="'+String(c.n).replace(/"/g,'&quot;')+'" onchange="mCandName('+ci+',this.value)" aria-label="candidate name">'+
+    '<button class="btn" style="padding:5px 9px" '+(CANDS.length<=2?'disabled':'')+' onclick="mCandDel('+ci+')" title="remove candidate">✕</button></div>').join('')+
+    '<button class="btn primary" '+(CANDS.length>=6?'disabled':'')+' onclick="mCandAdd()" style="align-self:center">+ Add candidate</button>';
+}
+function blocEditorHTML(){
+  return PROFILE.map((b,i)=>{
+    const pills=b.order.map((ci,r)=>
+      '<span class="pill dpill" data-c="'+ci+'" draggable="true" title="drag to reorder" ondragstart="mDragStart(event,'+i+','+r+')" ondragenter="cmpDE(this,1)" ondragleave="cmpDE(this,0)" ondragover="event.preventDefault()" ondrop="mDrop(event,'+i+','+r+')" style="background:'+CC(ci)+'">'+(r+1)+'. '+CANDS[ci].n+'</span>'+
+      (r<b.order.length-1?'<button class="swapbtn" title="swap these two" onclick="mMove('+i+','+r+',1)">⇄</button>':'')).join('');
+    return '<div class="bloc pbloc" style="grid-template-columns:auto 1fr auto">'+
+      '<input class="cinput" type="number" min="0" value="'+b.count+'" onchange="mSetCount('+i+',this.value)" aria-label="bloc size">'+
+      '<div class="order">'+pills+'</div>'+
+      '<button class="btn" style="padding:6px 11px" '+(PROFILE.length<=1?'disabled':'')+' onclick="mDelBloc('+i+')" title="remove this bloc">✕</button></div>';
+  }).join('');
+}
+function renderProfile(){
+  const candHtml=candEditorHTML(), blocHtml=blocEditorHTML();
+  const addBloc='<button class="btn primary" onclick="mAddBloc()" style="margin-top:10px">+ Add bloc</button>';
+  const cl=document.getElementById('cand-list'); if(cl) cl.innerHTML=candHtml;
+  const p=document.getElementById('profile'); if(p) p.innerHTML=blocHtml+addBloc;
+  document.querySelectorAll('.js-profile').forEach(el=>{ el.innerHTML=
+    '<div class="row" style="margin-bottom:12px">'+candHtml+'</div>'+blocHtml+addBloc; });
+  const tt=document.getElementById('tot'); if(tt) tt.textContent=totalVoters();
+}
+function summaryCards(elId){
+  const pl=argmax(plurality()).idx, bo=argmax(borda()).idx, cw=condorcet(), iv=irv().winner,
+        ap=argmax(approval(APPROVE_K)).idx, ro=plurRunoff().winner, km=kemeny().winner;
+  const card=(m,idx)=>`<div class="sumcard"><div class="m">${m}</div><div class="w">${idx<0?'<span style="color:var(--coral)">none (cycle)</span>':candEl(idx)}</div></div>`;
+  document.getElementById(elId).innerHTML=
+    card('Plurality',pl)+card('Borda',bo)+card('Condorcet',cw)+card('Instant-Runoff',iv)+card('Plurality + Runoff',ro)+card(`Approval (top ${APPROVE_K})`,ap)+card('Kemeny–Young',km);
+  return {pl,bo,cw,iv,ap,ro,km};
+}
+
+/* ── 3D step-stage framework ── */
+/* per-scene stepper registry — each scene id has its own independent state */
+const STEP={};
+function stepInst(sc){ return STEP[sc]||(STEP[sc]={FR:[],FI:0,FSC:sc,FSB:'',APon:false,APt:null}); }
+function clampF(S,k){ return Math.max(0,Math.min(S.FR.length-1,k)); }
+function stepStop(S){ S.APon=false; if(S.APt){clearTimeout(S.APt);S.APt=null;} }
+function mountSteps(sc,sb,frames){
+  const S=stepInst(sc); stepStop(S); const prevFI=S.FI||0; S.FR=frames||[]; S.FI=Math.max(0,Math.min(prevFI,S.FR.length-1)); S.FSB=sb;   // keep current step across re-mounts (edits) so the calc updates in place
+  const root=document.getElementById(sc);
+  if(root){
+    if(S.FR.length && S.FR[0].vals){
+      const m=S.FR[0].vals.length; let s='<div class="s-title js-stitle"></div><div class="bars">';
+      for(let i=0;i<m;i++) s+='<div class="barrow js-row" data-i="'+i+'">'+cdot(i)+
+        '<div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar3d js-bar" data-i="'+i+'" style="width:0%"></div></div>'+
+        '<span class="mono js-val" data-i="'+i+'" style="text-align:right;font-weight:700"></span></div>';
+      s+='</div><div class="js-foot" style="margin-top:12px;min-height:44px"></div>';
+      root.innerHTML=s; root.dataset.mode='bar';
+    } else { root.dataset.mode='html'; }
+  }
+  drawStep(sc);
+}
+function applyVotesHL(S){
+  const sc=document.getElementById(S.FSC); if(!sc||!sc.closest) return;
+  const scope=sc.closest('section')||sc.closest('.panel'); if(!scope) return;
+  const jp=scope.querySelector('.js-profile')||(sc.closest('.panel')&&sc.closest('.panel').querySelector('.js-profile')); if(!jp) return;
+  const f=S.FR[S.FI]||{};
+  const bi=(f.bloc!=null)?f.bloc:-1;
+  jp.querySelectorAll('.pbloc').forEach((el,idx)=>el.classList.toggle('bloc-active',idx===bi));
+  const cmp=f.cmp||null;
+  jp.querySelectorAll('.pill').forEach(p=>{
+    p.classList.remove('vh-a','vh-b');
+    if(cmp){ const c=+p.getAttribute('data-c');
+      if(c===cmp[0]) p.classList.add('vh-a'); else if(c===cmp[1]) p.classList.add('vh-b'); }
+  });
+}
+function stepGoto(sc,k){ const S=stepInst(sc); stepStop(S); S.FI=clampF(S,k); drawStep(sc); }
+function stepGo(sc,d){ const S=stepInst(sc); stepStop(S); S.FI=(d>0&&S.FI===S.FR.length-1)?0:clampF(S,S.FI+d); drawStep(sc); }
+function stepPlay(sc){ const S=stepInst(sc);
+  if(S.APon){ stepStop(S); drawStep(sc); return; }
+  if(S.FI>=S.FR.length-1) S.FI=0;
+  S.APon=true; drawStep(sc);
+  const tick=()=>{ if(!S.APon) return; if(S.FI>=S.FR.length-1){ S.APon=false;S.APt=null; drawStep(sc); return; } S.FI++; drawStep(sc); if(S.APon) S.APt=setTimeout(tick,1150); };
+  S.APt=setTimeout(tick,1000);
+}
+function drawStep(sc){
+  const S=stepInst(sc), el=document.getElementById(sc); if(!el||!S.FR.length) return;
+  const f=S.FR[S.FI];
+  if(f.vals && el.dataset.mode==='bar'){
+    const st=el.querySelector('.js-stitle'); if(st) st.textContent=f.title;
+    const mx=f.mx||Math.max(1,...f.vals);
+    f.vals.forEach((v,i)=>{
+      const bar=el.querySelector('.js-bar[data-i="'+i+'"]'),
+            val=el.querySelector('.js-val[data-i="'+i+'"]'),
+            row=el.querySelector('.js-row[data-i="'+i+'"]');
+      if(bar){ bar.style.width=(v/mx*100).toFixed(1)+'%'; bar.style.background=(f.hi===i?'linear-gradient(180deg,#7dffa8,#2fcf63)':CC(i)); }
+      if(val) val.textContent=rnd(v)+(f.unit||'');
+      if(row){ row.classList.remove('flash'); if((f.fl||[]).indexOf(i)>=0){ void row.offsetWidth; row.classList.add('flash'); } }
+    });
+    const ft=el.querySelector('.js-foot'); if(ft) ft.innerHTML=f.foot||'';
+  } else {
+    el.innerHTML=f.h;
+  }
+  applyVotesHL(S);
+  const sb=document.getElementById(S.FSB); if(!sb) return;
+  const q="'"+sc+"'";
+  sb.innerHTML='<button class="btn" '+(S.FI===0?'disabled':'')+' onclick="stepGo('+q+',-1)">◀ Prev</button>'+
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center">'+
+    '<button class="btn" onclick="stepPlay('+q+')">'+(S.APon?'⏸ Pause':'▶ Play')+'</button>'+
+    '<button class="btn" '+(S.FI===S.FR.length-1?'disabled':'')+' onclick="stepGoto('+q+','+(S.FR.length-1)+')">⏭ End</button>'+
+    '<span class="slabel">Step <b>'+(S.FI+1)+'</b>/<b>'+S.FR.length+'</b> · '+S.FR[S.FI].l+'</span>'+
+    '<div class="sdots">'+S.FR.map((_,k)=>'<button class="sdot '+(k===S.FI?'on':'')+'" onclick="stepGoto('+q+','+k+')"></button>').join('')+'</div></div>'+
+    '<button class="btn primary" onclick="stepGo('+q+',1)">'+(S.FI===S.FR.length-1?'↻ Replay':'Next ▶')+'</button>';
+}
+const CC=i=>CANDS[i].c;
+function cdot(i){ return '<span class="cand"><span class="dot" style="background:'+CC(i)+'"></span>'+CANDS[i].n+'</span>'; }
+function sT(t){ return '<div class="s-title">'+t+'</div>'; }
+function mxv(a){ return Math.max(1,...a); }
+function rnd(v){ return Math.round(v*100)/100; }
+function bar3d(vals,mx,hi,unit,fl){
+  fl=fl||[];
+  return '<div class="bars">'+vals.map((v,i)=>'<div class="barrow'+(fl.indexOf(i)>=0?' flash':'')+'">'+cdot(i)+
+    '<div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar3d" style="width:'+(v/mx*100).toFixed(1)+'%;background:'+(hi===i?'linear-gradient(180deg,#7dffa8,#2fcf63)':CC(i))+'"></div></div>'+
+    '<span class="mono" style="text-align:right;font-weight:700">'+rnd(v)+(unit||'')+'</span></div>').join('')+'</div>';
+}
+function winTag(i){ return i<0?'<div class="win-tag no-win">⚠ no single winner</div>':'<div class="win-tag">🏆 Winner: '+CANDS[i].n+'</div>'; }
+
+function fTally(compute,unit,title){
+  const fin=compute(PROFILE.length), mx=mxv(fin), nb=PROFILE.length, t=Array(M).fill(0), fr=[];
+  for(let k=0;k<nb;k++){ compute.add(t,PROFILE[k]); const fl=compute.prim(PROFILE[k]), names=fl.map(i=>CANDS[i].n).join(' &amp; ');
+    fr.push({l:'bloc '+(k+1)+'/'+nb+' → '+fl.map(i=>CANDS[i].n).join(', '),
+      title:title+' — counting bloc '+(k+1)+' of '+nb+' ('+PROFILE[k].count+' voters)',
+      vals:t.slice(), mx:mx, hi:-1, unit:unit, fl:fl, bloc:k,
+      foot:'<div style="font-size:.84rem;line-height:1.7;color:#d7daf2;text-align:center">Bloc of <b style="color:var(--gold)">'+PROFILE[k].count+'</b> voters'+(compute.calc?compute.calc(PROFILE[k]):' — adds to <b>'+names+'</b>')+'</div>'}); }
+  const w=argmax(fin), wi=w.tie?-1:w.idx;
+  fr.push({l:'result',title:title+' — final totals',vals:fin,mx:mx,hi:wi,unit:unit,fl:wi>=0?[wi]:[],bloc:-1,foot:winTag(wi)});
+  return fr;
+}
+const pluC=()=>plurality(); pluC.add=(t,b)=>{t[b.order[0]]+=b.count;}; pluC.prim=b=>[b.order[0]];
+const borC=()=>borda();     borC.add=(t,b)=>{b.order.forEach((ci,r)=>t[ci]+=(M-1-r)*b.count);}; borC.prim=b=>[b.order[0]];
+function appC(){ return approval(APPROVE_K); } appC.add=(t,b)=>{ for(let r=0;r<APPROVE_K;r++) t[b.order[r]]+=b.count; }; appC.prim=b=>b.order.slice(0,APPROVE_K);
+const calcChip=(ci,inner)=>'<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:9px;border:1px solid var(--border);background:var(--bg2);font-family:\'JetBrains Mono\',monospace;font-size:.79rem"><span class="dot" style="width:10px;height:10px;background:'+CANDS[ci].c+'"></span>'+inner+'</span>';
+const calcWrap=s=>'<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px">'+s+'</div>';
+pluC.calc=b=>' — only the 1st choice scores'+calcWrap(calcChip(b.order[0],'<b>'+CANDS[b.order[0]].n+'</b> +<b style="color:var(--gold);font-size:.9rem">'+b.count+'</b>'));
+borC.calc=b=>' — each rank scores <span style="color:var(--muted)">(m−1−rank)×'+b.count+'</span>'+calcWrap(b.order.map((ci,r)=>{const p=M-1-r;return calcChip(ci,'<b>'+CANDS[ci].n+'</b>&nbsp;'+p+'×'+b.count+'=<b style="color:var(--gold);font-size:.9rem">'+(p*b.count)+'</b>');}).join(''));
+appC.calc=b=>' — top '+APPROVE_K+' approved'+calcWrap(b.order.slice(0,APPROVE_K).map(ci=>calcChip(ci,'<b>'+CANDS[ci].n+'</b> +<b style="color:var(--gold);font-size:.9rem">'+b.count+'</b>')).join(''));
+
+function condMx(seen,act,winRow){
+  let s='<table class="matrix"><tr><th>beats →</th>'+CANDS.map(c=>'<th class="mono">'+c.n+'</th>').join('')+'</tr>';
+  for(let a=0;a<M;a++){
+    const rowFl=((act&&(a===act[0]||a===act[1]))||(winRow!=null&&a===winRow))?' class="flash"':'';
+    s+='<tr'+rowFl+'><th class="mono" style="text-align:left">'+CANDS[a].n+'</th>';
+    for(let b=0;b<M;b++){ if(a===b){s+='<td class="lcell">—</td>';continue;}
+      const key=a<b?a+','+b:b+','+a;
+      if(!seen.has(key)){ s+='<td class="lcell">·</td>'; continue; }
+      const pr=pairwise(a,b);
+      const fl=act&&((a===act[0]&&b===act[1])||(a===act[1]&&b===act[0]))?' flash':'';
+      s+='<td class="'+(pr[0]>pr[1]?'wcell':'lcell')+fl+'">'+pr[0]+'–'+pr[1]+'</td>'; }
+    s+='</tr>'; }
+  return '<div style="overflow:auto">'+s+'</table></div>';
+}
+function condCalc(a,b){
+  let A=0,B=0;
+  const rows=PROFILE.map(bl=>{ const prefA=bl.order.indexOf(a)<bl.order.indexOf(b), hi=prefA?a:b; prefA?A+=bl.count:B+=bl.count;
+    return '<tr><td class="mono" style="text-align:right">'+bl.count+'×</td><td>ranks <b style="color:'+CANDS[hi].c+'">'+CANDS[hi].n+'</b> above <b>'+CANDS[prefA?b:a].n+'</b></td><td class="mono" style="text-align:right;font-weight:700">+'+bl.count+' → '+CANDS[hi].n+'</td></tr>'; }).join('');
+  return {A,B,rows};
+}
+function fCond(){
+  const pairs=[]; for(let a=0;a<M;a++) for(let b=a+1;b<M;b++) pairs.push([a,b]);
+  const fr=[], seen=new Set();
+  pairs.forEach((p,k)=>{ seen.add(p[0]+','+p[1]); const pr=pairwise(p[0],p[1]); const w=pr[0]>pr[1]?p[0]:p[1]; const cc=condCalc(p[0],p[1]); const tie=cc.A===cc.B;
+    fr.push({l:CANDS[p[0]].n+' vs '+CANDS[p[1]].n+' → '+CANDS[w].n, cmp:p,
+      h:sT('Head-to-head '+(k+1)+' of '+pairs.length+' — '+CANDS[p[0]].n+' vs '+CANDS[p[1]].n)+condMx(new Set(seen),p)+
+        '<div class="glass" style="margin-top:10px;font-size:.8rem"><div class="vlabel">Tally · which of the two does each bloc rank higher?</div>'+
+        '<div style="overflow:auto"><table>'+cc.rows+
+        '<tr class="flash"><td></td><td style="font-weight:800"><b style="color:'+CANDS[p[0]].c+'">'+CANDS[p[0]].n+'</b> '+cc.A+' &nbsp;vs&nbsp; <b style="color:'+CANDS[p[1]].c+'">'+CANDS[p[1]].n+'</b> '+cc.B+'</td>'+
+        '<td class="mono" style="text-align:right;font-weight:800;color:'+(tie?'var(--coral)':'var(--green)')+'">'+(tie?'tie':CANDS[w].n+' wins')+'</td></tr></table></div></div>'+
+        '<div class="muted" style="font-size:.78rem;margin-top:8px">Every occurrence of <b style="color:#ffd43b">'+CANDS[p[0]].n+'</b> and <b style="color:#4f8ef7">'+CANDS[p[1]].n+'</b> is ringed in the <b>Votes</b> box above, so you can check each bloc.</div>'}); });
+  const cw=condorcet();
+  fr.push({l:'verdict',h:sT('All pairwise duels')+condMx(new Set(pairs.map(p=>p[0]+','+p[1])),null,cw>=0?cw:null)+
+    (cw<0?'<div class="win-tag no-win">⚠ No Condorcet winner — majorities cycle</div>':'<div class="win-tag">🏆 Condorcet winner: '+CANDS[cw].n+'</div>')});
+  return fr;
+}
+function roundBars(tal,tv,elim,fl){
+  fl=fl||[]; const mx=Math.max(1,...tal.map(o=>o.v));
+  return '<div class="bars">'+tal.map(o=>{ const maj=o.v*2>tv;
+    return '<div class="barrow'+(fl.indexOf(o.c)>=0?' flash':'')+'"><span class="'+(elim===o.c?'elim':'')+'" style="font-weight:700">'+CANDS[o.c].n+'</span>'+
+    '<div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar3d" style="width:'+(o.v/mx*100).toFixed(1)+'%;background:'+(maj?'linear-gradient(180deg,#7dffa8,#2fcf63)':CC(o.c))+'"></div></div>'+
+    '<span class="mono" style="text-align:right;font-weight:700">'+o.v+'</span></div>'; }).join('')+'</div>';
+}
+function fIRV(){
+  const r=irv(), tv=totalVoters(), fr=[];
+  r.rounds.forEach((rd,i)=>fr.push({l:'round '+(i+1)+(rd.elim!=null?' — drop '+CANDS[rd.elim].n:' — majority'),
+    h:sT('IRV round '+(i+1)+' of '+r.rounds.length)+roundBars(rd.tallies,tv,rd.elim,rd.elim!=null?[rd.elim]:[])+
+      (rd.elim!=null?'<div class="muted" style="font-size:.78rem;margin-top:8px">↓ Eliminate <b style="color:var(--coral)">'+CANDS[rd.elim].n+'</b> — transfer ballots to next choice</div>':'')}));
+  fr.push({l:'winner',h:sT('Majority reached')+roundBars(r.rounds[r.rounds.length-1].tallies,tv,null,[r.winner])+winTag(r.winner)});
+  return fr;
+}
+function fRunoff(){
+  const K=plurRunoff(), fr=[];
+  const rmax=Math.max(mxv(K.r1), Math.max(K.r2.votes[0],K.r2.votes[1]));
+  fr.push({l:'round 1',title:'Round 1 — first choices',vals:K.r1,mx:rmax,hi:-1,unit:' votes',fl:[],bloc:-1,foot:''});
+  fr.push({l:'top two',title:'Top two always advance to Round 2',vals:K.r1,mx:rmax,hi:-1,unit:' votes',fl:K.top,bloc:-1,
+    foot:'<div class="muted" style="font-size:.8rem">'+(K.maj1?'<b>'+CANDS[K.top[0]].n+'</b> already leads with a majority — but France <b>still</b> holds Round 2. ':'No single majority. ')+'Finalists <b>'+CANDS[K.top[0]].n+'</b> &amp; <b>'+CANDS[K.top[1]].n+'</b> — every ballot now backs its higher-ranked finalist.</div>'});
+  const v=Array(M).fill(0); v[K.top[0]]=K.r2.votes[0]; v[K.top[1]]=K.r2.votes[1];
+  fr.push({l:'runoff',title:'Round 2 — head-to-head runoff',vals:v,mx:rmax,hi:-1,unit:' votes',fl:K.top,bloc:-1,foot:''});
+  fr.push({l:'winner',title:'Runoff result',vals:v,mx:rmax,hi:K.winner,unit:' votes',fl:[K.winner],bloc:-1,foot:winTag(K.winner)});
+  return fr;
+}
+function fSTV(){
+  const S=stv(STV_SEATS), fr=[], gone=new Set();   // gone = candidates eliminated in earlier rounds
+  const bal=g=>'<div class="muted" style="font-size:.74rem;margin:8px 0 4px">Ballots this round — eliminated candidates dropped; each bloc now counts for its <b>top surviving</b> choice:</div>'+
+    '<div style="display:flex;flex-direction:column;gap:5px">'+PROFILE.map(b=>{ const sv=b.order.filter(c=>!g.has(c));
+      return '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span class="mono" style="min-width:36px;text-align:right;font-weight:700">'+b.count+'×</span>'+
+        sv.map((c,r)=>'<span class="pill" style="background:'+CC(c)+(r===0?'':';opacity:.5')+'">'+CANDS[c].n+'</span>'+(r<sv.length-1?'<span class="sep">›</span>':'')).join('')+'</div>'; }).join('')+'</div>';
+  S.rounds.forEach((rd,i)=>{
+    const active=[...Array(M).keys()].filter(c=>!gone.has(c));   // updated table — drop eliminated
+    const mx=Math.max(1,...active.map(c=>rd.t[c]||0));
+    const rows='<div class="bars">'+active.map(c=>{ const val=rd.t[c]||0,hit=rd.act==='elect'&&rd.who.includes(c),elimNow=rd.act==='elim'&&rd.who.includes(c),dim=(val===0&&!elimNow)?'opacity:.45':'',fl=rd.who.indexOf(c)>=0?' flash':'';
+      const bg=hit?'linear-gradient(180deg,#7dffa8,#2fcf63)':elimNow?'linear-gradient(180deg,#ff9a9a,#e25555)':CC(c);
+      const lbl=elimNow?'<span class="cand" style="color:#ff6b6b;font-weight:700"><span class="dot" style="background:#ff6b6b"></span><span style="text-decoration:line-through">'+CANDS[c].n+'</span> <span style="font-family:\'JetBrains Mono\',monospace;font-size:.6rem;border:1px solid #ff6b6b;border-radius:5px;padding:1px 5px">✘ out next</span></span>':cdot(c);
+      return '<div class="barrow'+fl+'" style="'+dim+'">'+lbl+
+      '<div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar3d" style="width:'+(val/mx*100).toFixed(1)+'%;background:'+bg+'"></div></div>'+
+      '<span class="mono" style="text-align:right;font-weight:700">'+rnd(val)+'</span></div>'; }).join('')+'</div>';
+    const act=rd.act==='elect'?'✔ Elect <b style="color:var(--green)">'+CANDS[rd.who[0]].n+'</b> — surplus '+rd.surplus+' transfers fractionally'
+      :rd.act==='elim'?'✘ Eliminate <b style="color:var(--coral)">'+CANDS[rd.who[0]].n+'</b> — transfer at full value, then drop from the table'
+      :'Remaining seats filled: '+rd.who.map(c=>CANDS[c].n).join(', ');
+    fr.push({l:'round '+(i+1),h:sT('STV round '+(i+1)+' · Droop quota '+S.quota+' · '+active.length+' candidate'+(active.length===1?'':'s')+' left')+rows+bal(gone)+'<div class="muted" style="font-size:.78rem;margin-top:8px">'+act+'</div>'});
+    if(rd.act==='elim') rd.who.forEach(c=>gone.add(c));   // exclude from every later round
+  });
+  fr.push({l:'elected',h:sT('Seats filled')+'<div class="win-tag">🏆 Elected ('+S.elected.length+'): '+S.elected.map(c=>CANDS[c].n).join(' · ')+'</div>'});
+  return fr;
+}
+function fKemeny(){
+  const sc=permute([...Array(M).keys()]).map(p=>{let s=0;for(let i=0;i<M;i++)for(let j=i+1;j<M;j++)s+=pairwise(p[i],p[j])[0];return{p,s};}).sort((a,b)=>b.s-a.s);
+  const top=sc.slice(0,6), fr=[];
+  for(let k=1;k<=top.length;k++){
+    let tb='<table><tr><th>Ranking</th><th class="mono" style="text-align:right">Kemeny score</th></tr>';
+    top.slice(0,k).forEach((o,idx)=>tb+='<tr'+(idx===k-1?' class="flash"':'')+'><td>'+o.p.map(c=>CANDS[c].n).join(' › ')+'</td><td class="mono" style="text-align:right;'+(idx===0?'color:var(--green);font-weight:800':'')+'">'+o.s+'</td></tr>');
+    fr.push({l:'best '+k,h:sT('Scoring rankings by pairwise agreement — top '+k)+'<div style="overflow:auto">'+tb+'</table></div>'}); }
+  const B=sc[0];
+  const pills=B.p.map((c,r)=>'<span class="pill" style="background:'+CC(c)+'">'+(r+1)+'. '+CANDS[c].n+'</span>'+(r<M-1?'<span class="sep">›</span>':'')).join('');
+  fr.push({l:'consensus',h:sT('Best consensus ranking · score '+B.s)+'<div class="order" style="margin:6px 0 6px">'+pills+'</div>'+winTag(B.p[0])});
+  return fr;
+}
+function unhappyRows(p){            // full K(σ) expansion for one ranking, returns {rows, terms, total}
+  const terms=[]; let total=0;
+  for(let i=0;i<M;i++) for(let j=i+1;j<M;j++){ const a=p[i],b=p[j], n=pairwise(a,b)[1]; total+=n;
+    terms.push('n<sub>'+CANDS[b].n+'≻'+CANDS[a].n+'</sub>'); }
+  let rows='';
+  for(let i=0,t=0;i<M;i++) for(let j=i+1;j<M;j++,t++){ const a=p[i],b=p[j], n=pairwise(a,b)[1];
+    rows+='<tr><td class="mono"><b style="color:'+CC(a)+'">'+CANDS[a].n+'</b> ≻ <b style="color:'+CC(b)+'">'+CANDS[b].n+'</b></td>'+
+      '<td class="mono" style="text-align:center">n<sub>'+CANDS[b].n+'≻'+CANDS[a].n+'</sub></td>'+
+      '<td class="mono" style="text-align:right;font-weight:700">'+n+'</td></tr>'; }
+  return {rows, total};
+}
+function unhappyCalc(p,rankLabel){
+  const ord=p.map((c,r)=>'<span class="pill" style="background:'+CC(c)+'">'+(r+1)+'. '+CANDS[c].n+'</span>'+(r<M-1?'<span class="sep">›</span>':'')).join('');
+  const {rows,total}=unhappyRows(p);
+  const sumTerms=[]; for(let i=0;i<M;i++) for(let j=i+1;j<M;j++) sumTerms.push(pairwise(p[i],p[j])[1]);
+  return '<div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;justify-content:center;margin:4px 0 12px;padding:9px 12px;background:rgba(255,212,59,.07);border:1px solid rgba(255,212,59,.28);border-radius:11px"><span style="font-family:\'JetBrains Mono\',monospace;font-weight:800;font-size:1.15rem;color:var(--gold)">σ =</span><div class="order">'+ord+'</div></div>'+
+    '<div style="overflow:auto"><table><tr><th>pair · a ≻<sub>σ</sub> b</th><th class="mono" style="text-align:center">unhappy voters</th><th class="mono" style="text-align:right">n<sub>b≻a</sub></th></tr>'+rows+
+    '<tr class="flash"><td style="font-weight:800">K(σ) = '+sumTerms.join(' + ')+'</td><td></td><td class="mono" style="text-align:right;color:var(--gold);font-weight:800;font-size:1rem">'+total+'</td></tr></table></div>'+
+    '<div class="muted" style="font-size:.78rem;margin-top:8px">For every pair where <b>a</b> is ranked above <b>b</b> in σ, the <b>n<sub>b≻a</sub></b> voters who actually prefer <b>b</b> are unhappy. '+rankLabel+'</div>';
+}
+function fUnhappy(){
+  const sc=permute([...Array(M).keys()]).map(p=>{let u=0;for(let i=0;i<M;i++)for(let j=i+1;j<M;j++)u+=pairwise(p[i],p[j])[1];return{p,u};}).sort((a,b)=>a.u-b.u);
+  const top=sc, fr=[], N=top.length;   // every one of the M! permutations, best (lowest K) first
+  top.forEach((o,k)=>{
+    const note=k===0?'This is the <b style="color:var(--green)">lowest</b> K of all '+N+' permutations — the current best.':(k===N-1?'The <b style="color:var(--coral)">worst</b> possible ranking.':'Compare its K to the best, ranking #1 ('+top[0].u+').');
+    fr.push({l:'σ #'+(k+1)+' · K='+o.u,
+      h:sT('Full K(σ) calculation — permutation '+(k+1)+' of '+N+' (all M! orderings, best first)')+unhappyCalc(o.p,note)});
+  });
+  const B=sc[0], worst=sc[sc.length-1].u;
+  let tb='<table><tr><th>Ranking σ — all '+N+' permutations</th><th class="mono" style="text-align:right">K(σ)</th></tr>';
+  top.forEach((o,idx)=>tb+='<tr'+(idx===0?' class="flash"':'')+'><td><span class="mono" style="color:var(--muted)">#'+(idx+1)+'</span> &nbsp;'+o.p.map(c=>CANDS[c].n).join(' › ')+'</td><td class="mono" style="text-align:right;'+(idx===0?'color:var(--green);font-weight:800':(idx===N-1?'color:var(--coral)':''))+'">'+o.u+'</td></tr>');
+  const pills=B.p.map((c,r)=>'<span class="pill" style="background:'+CC(c)+'">'+(r+1)+'. '+CANDS[c].n+'</span>'+(r<M-1?'<span class="sep">›</span>':'')).join('');
+  fr.push({l:'σ* · K='+B.u,h:sT('σ* — minimum total unhappiness · K = '+B.u)+
+    '<div style="overflow:auto;max-height:340px;margin-bottom:10px">'+tb+'</table></div>'+
+    '<div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;justify-content:center;margin:6px 0;padding:9px 12px;background:rgba(81,207,102,.08);border:1px solid rgba(81,207,102,.32);border-radius:11px"><span style="font-family:\'JetBrains Mono\',monospace;font-weight:800;font-size:1.15rem;color:var(--green)">σ* =</span><div class="order">'+pills+'</div></div>'+winTag(B.p[0])+
+    '<div class="muted" style="font-size:.78rem;margin-top:8px">Social <b>welfare</b> function → the whole ranking σ*. Social <b>choice</b> function → its top alternative, <b style="color:var(--gold)">'+CANDS[B.p[0]].n+'</b>. (The worst possible ranking scores '+worst+'.)</div>'});
+  return fr;
+}
+function winnersAll(){ return [['Plurality',argmax(plurality()).idx],['Borda',argmax(borda()).idx],['Condorcet',condorcet()],['Instant-Runoff',irv().winner],['Plurality + Runoff',plurRunoff().winner],['Approval',argmax(approval(APPROVE_K)).idx],['Kemeny–Young',kemeny().winner]]; }
+function sumCard(m,i,fl){ return '<div class="sumcard'+(fl?' flash':'')+'"><div class="m">'+m+'</div><div class="w">'+(i<0?'<span style="color:var(--coral)">none (cycle)</span>':cdot(i))+'</div></div>'; }
+function fBallot(){
+  const fr=[], nb=PROFILE.length;
+  for(let k=1;k<=nb;k++){
+    const rows=PROFILE.slice(0,k).map(b=>'<div class="barrow"><span class="mono" style="font-weight:700">'+b.count+'×</span>'+
+      '<div class="order">'+b.order.map((ci,r)=>'<span class="pill" style="background:'+CC(ci)+'">'+(r+1)+'. '+CANDS[ci].n+'</span>'+(r<M-1?'<span class="sep">›</span>':'')).join('')+'</div><span></span></div>').join('');
+    fr.push({l:'bloc '+k+'/'+nb,h:sT('Voter blocs entering — '+k+' of '+nb)+'<div class="bars">'+rows+'</div>'}); }
+  const W=winnersAll(), set=new Set(W.map(x=>x[1]).filter(i=>i>=0));
+  fr.push({l:'who wins',h:sT('Who wins under each rule?')+'<div class="summary">'+W.map(x=>sumCard(x[0],x[1])).join('')+'</div>'+
+    '<div class="glass" style="margin-top:14px">'+(set.size>1?'⚠ The rules <b style="color:var(--gold)">disagree</b> — '+set.size+' different winners from one fixed set of ballots. Walk the tabs to see <em>why</em>.':'✅ All rules agree on <b>'+CANDS[[...set][0]].n+'</b>. Try the <em>Tennessee</em> or <em>Condorcet cycle</em> preset to make them clash.')+'</div>'});
+  return fr;
+}
+function fParadox(){
+  const W=winnersAll(), fr=[];
+  for(let k=1;k<=W.length;k++) fr.push({l:W[k-1][0],h:sT('Revealing each rule’s winner — '+k+' of '+W.length)+'<div class="summary">'+W.slice(0,k).map((x,idx)=>sumCard(x[0],x[1],idx===k-1)).join('')+'</div>'});
+  const set=new Set(W.map(x=>x[1]).filter(i=>i>=0));
+  fr.push({l:'verdict',h:sT('The verdict')+'<div class="summary">'+W.map(x=>sumCard(x[0],x[1])).join('')+'</div>'+
+    '<div class="glass" style="margin-top:14px"><b style="color:var(--gold)">'+set.size+'</b> different winners for one unchanged set of ballots. The ballots don’t decide — the <b>rule</b> does. That is exactly what Arrow’s impossibility theorem makes unavoidable.</div>'});
+  return fr;
+}
+
+/* ── Voting-in-AI tab: interactive soft-vs-hard ensemble demo ── */
+let aiC1=0.99;
+function aiSet(v){ aiC1=Math.max(0.5,Math.min(0.99,parseFloat(v)||0.5)); renderAI(); }
+function renderAI(){
+  const host=document.getElementById('ai-ensemble'); if(!host) return;
+  const val=document.getElementById('ai-c1val'); if(val) val.textContent=aiC1.toFixed(2);
+  const A='#4f8ef7', B='#00d4aa';
+  const clfs=[
+    {n:'Clf 1', d:'high-confidence', p:[aiC1,1-aiC1]},
+    {n:'Clf 2', d:'borderline',      p:[0.49,0.51]},
+    {n:'Clf 3', d:'borderline',      p:[0.49,0.51]}
+  ];
+  const pct=x=>(x*100).toFixed(0);
+  const seg=p=>'<div class="pbar"><div class="pseg" style="width:'+pct(p[0])+'%;background:'+A+'">A '+pct(p[0])+'%</div><div class="pseg" style="width:'+pct(p[1])+'%;background:'+B+'">B '+pct(p[1])+'%</div></div>';
+  let h=clfs.map(c=>'<div class="clfrow"><div class="nm">'+c.n+'<small>'+c.d+' · picks '+(c.p[0]>=c.p[1]?'A':'B')+'</small></div>'+seg(c.p)+'</div>').join('');
+  const hv=[0,0]; clfs.forEach(c=>hv[c.p[0]>=c.p[1]?0:1]++);
+  const hardWin=hv[0]>hv[1]?'A':hv[1]>hv[0]?'B':'tie';
+  const avg=[clfs.reduce((s,c)=>s+c.p[0],0)/3, clfs.reduce((s,c)=>s+c.p[1],0)/3];
+  const softWin=avg[0]>avg[1]?'A':avg[1]>avg[0]?'B':'tie';
+  const clash=hardWin!==softWin;
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px">'+
+     '<div style="text-align:center"><div class="viz-title" style="margin-bottom:8px">Hard vote · majority label</div>'+
+       '<div class="row" style="justify-content:center;gap:8px"><span class="votechip" style="border-color:'+A+'">A · '+hv[0]+'</span><span class="votechip" style="border-color:'+B+'">B · '+hv[1]+'</span></div>'+
+       '<div class="aiwin'+(clash?' warn':'')+'" style="margin-top:10px">🏆 '+hardWin+'</div></div>'+
+     '<div style="text-align:center"><div class="viz-title" style="margin-bottom:8px">Soft vote · avg probability</div>'+
+       seg(avg)+'<div class="aiwin'+(clash?' warn':'')+'" style="margin-top:10px">🏆 '+softWin+'</div></div>'+
+     '</div>';
+  h+='<div class="glass" style="margin-top:16px;font-size:.82rem">'+(clash
+      ? '⚠ <b style="color:var(--gold)">Hard and soft disagree.</b> The two borderline models out-vote Clf&nbsp;1 on the <em>label</em> (hard&nbsp;→&nbsp;B), but Clf&nbsp;1’s <b>'+pct(aiC1)+'%</b> probability dominates the <em>average</em>, so soft voting picks <b>A</b>. Soft voting lets confidence — not just the head-count — decide.'
+      : '✅ Hard and soft agree on <b>'+softWin+'</b>. Slide Clf&nbsp;1’s confidence up toward 0.99 and watch the soft vote flip to A while the hard vote stays at B.')+'</div>';
+  host.innerHTML=h;
+}
+/* ── Arrow's tab: IIA step-by-step, with switchable examples ── */
+const IIA_COL={A:'#4f8ef7',B:'#ff6b6b',C:'#b06eff'};
+function iiaBallots(blocs,avail,annotate){
+  if(annotate===undefined) annotate=true;
+  return '<div style="display:flex;flex-direction:column;gap:7px;margin:10px 0 14px">'+blocs.map(b=>{
+    const top=b.order.find(c=>avail.includes(c));
+    return '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span class="mono" style="min-width:40px;text-align:right;font-weight:700">'+b.n+'×</span>'+
+      b.order.map((c,r)=>{ const gone=!avail.includes(c), isTop=annotate&&c===top;
+        return '<span class="pill" style="background:'+IIA_COL[c]+';'+(gone?'opacity:.22;text-decoration:line-through;':'')+(isTop?'outline:2px solid #fff;outline-offset:2px;':'')+'">'+(r+1)+'. '+c+'</span>'+(r<2?'<span class="sep">›</span>':''); }).join('')+
+      (annotate?'<span class="muted" style="font-size:.72rem;margin-left:5px">→ <b style="color:'+IIA_COL[top]+'">'+top+'</b></span>':'')+'</div>';
+  }).join('')+'</div>';
+}
+function iiaBars(t,list,hi,elim,unit){
+  const mx=Math.max(1,...list.map(c=>t[c]));
+  return '<div class="bars" style="max-width:460px;margin:0 auto">'+list.map(c=>
+    '<div class="barrow"><span class="cand"><span class="dot" style="background:'+IIA_COL[c]+'"></span><span'+(elim===c?' style="text-decoration:line-through;opacity:.65"':'')+'>'+c+'</span></span>'+
+    '<div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar3d" style="width:'+(t[c]/mx*100).toFixed(1)+'%;background:'+(hi===c?'linear-gradient(180deg,#7dffa8,#2fcf63)':elim===c?'linear-gradient(180deg,#ff9a9a,#e25555)':IIA_COL[c])+'"></div></div>'+
+    '<span class="mono" style="text-align:right;font-weight:700">'+t[c]+(unit||'')+'</span></div>').join('')+'</div>';
+}
+function fIIAplu(){
+  const blocs=[{n:44,order:['A','B','C']},{n:36,order:['B','C','A']},{n:20,order:['C','B','A']}];
+  const tallyOf=avail=>{ const t={A:0,B:0,C:0}; blocs.forEach(b=>{ t[b.order.find(c=>avail.includes(c))]+=b.n; }); return t; };
+  const all=['A','B','C'], two=['A','B'], t3=tallyOf(all), t2=tallyOf(two);
+  return [
+    {l:'three-way tally', h:sT('Step 1 · Three-way plurality — count every first choice')+iiaBallots(blocs,all)+iiaBars(t3,all,null,null,'')+
+      '<div class="muted" style="font-size:.78rem;margin-top:8px;text-align:center"><b style="color:#4f8ef7">A</b>='+t3.A+', <b style="color:#ff6b6b">B</b>='+t3.B+', <b style="color:#b06eff">C</b>='+t3.C+'. Most first-choices wins → plurality winner so far is <b style="color:#4f8ef7">A</b>.</div>'},
+    {l:'drop lowest (C)', h:sT('Step 2 · C is the lowest — an irrelevant “sure loser”. Remove it')+iiaBallots(blocs,all)+iiaBars(t3,all,null,'C','')+
+      '<div class="muted" style="font-size:.78rem;margin-top:8px;text-align:center">↓ Eliminate <b style="color:#b06eff">C</b> (only '+t3.C+' votes). Those ballots ranked <b style="color:#b06eff">C</b>&nbsp;›&nbsp;<b style="color:#ff6b6b">B</b>&nbsp;›&nbsp;A, so they now count for <b style="color:#ff6b6b">B</b>.</div>'},
+    {l:'two-way · winner', h:sT('Step 3 · Same ballots, C gone — recount A vs B')+iiaBallots(blocs,two)+iiaBars(t2,two,'B',null,'')+
+      '<div style="text-align:center"><div class="win-tag" style="margin-top:8px">🏆 Winner: B — '+t2.B+' to '+t2.A+'</div></div>'+
+      '<div class="glass" style="margin-top:12px;font-size:.82rem">⚠ The winner flipped from <b style="color:#4f8ef7">A</b> to <b style="color:#ff6b6b">B</b> — yet not one voter changed their opinion about A vs B. Only the irrelevant candidate <b style="color:#b06eff">C</b> left the race. That is an <b style="color:var(--gold)">IIA violation</b> — the spoiler effect.</div>'}
+  ];
+}
+function fIIAborda(){
+  const blocs=[{n:30,order:['A','B','C']},{n:20,order:['B','C','A']},{n:20,order:['C','A','B']}];
+  const bordaOf=avail=>{ const k=avail.length, t={A:0,B:0,C:0};
+    blocs.forEach(b=>{ b.order.filter(c=>avail.includes(c)).forEach((c,r)=>{ t[c]+=b.n*(k-1-r); }); }); return t; };
+  const all=['A','B','C'], pair=['A','C'], t3=bordaOf(all), t2=bordaOf(pair);
+  return [
+    {l:'borda · all three', h:sT('Step 1 · Borda — score every ballot (1st=2, 2nd=1, 3rd=0)')+iiaBallots(blocs,all,false)+iiaBars(t3,all,'A',null,' pts')+
+      '<div class="muted" style="font-size:.78rem;margin-top:8px;text-align:center"><b style="color:#4f8ef7">A</b>='+t3.A+', <b style="color:#ff6b6b">B</b>='+t3.B+', <b style="color:#b06eff">C</b>='+t3.C+'. A wins — and Borda ranks <b style="color:#4f8ef7">A</b> above <b style="color:#b06eff">C</b> ('+t3.A+' vs '+t3.C+').</div>'},
+    {l:'drop B', h:sT('Step 2 · B is irrelevant to the A-vs-C question — remove it')+iiaBallots(blocs,all,false)+iiaBars(t3,all,null,'B',' pts')+
+      '<div class="muted" style="font-size:.78rem;margin-top:8px;text-align:center">Remove <b style="color:#ff6b6b">B</b>. No voter changes how they rank <b style="color:#4f8ef7">A</b> vs <b style="color:#b06eff">C</b> — we only re-score Borda on the two that remain.</div>'},
+    {l:'borda · A vs C', h:sT('Step 3 · Re-score Borda on A vs C alone (1st=1, 2nd=0)')+iiaBallots(blocs,pair,false)+iiaBars(t2,pair,'C',null,' pts')+
+      '<div style="text-align:center"><div class="win-tag" style="margin-top:8px">🏆 Now C beats A — '+t2.C+' to '+t2.A+'</div></div>'+
+      '<div class="glass" style="margin-top:12px;font-size:.82rem">⚠ With B in the race Borda ranked <b style="color:#4f8ef7">A</b> above <b style="color:#b06eff">C</b>; remove the irrelevant <b style="color:#ff6b6b">B</b> and <b style="color:#b06eff">C</b> ranks above <b style="color:#4f8ef7">A</b> — though not one voter changed their A-vs-C opinion. That is an <b style="color:var(--gold)">IIA violation</b>.</div>'}
+  ];
+}
+let iiaEx='plu';
+function iiaPick(ex){ iiaEx=ex; mountIIA(); }
+function mountIIA(){
+  document.querySelectorAll('.iia-tab').forEach(b=>b.classList.toggle('active', b.dataset.ex===iiaEx));
+  mountSteps('iia-sc','iia-sb', iiaEx==='bor'?fIIAborda():fIIAplu());
+}
+/* Arrow proof · pivotal-voter march */
+let arrowK=0;
+function arrowSet(v){ arrowK=Math.max(0,Math.min(5,parseInt(v,10)||0)); renderArrowPivot(); }
+function renderArrowPivot(){
+  const host=document.getElementById('arrow-pivot'); if(!host) return;
+  const kv=document.getElementById('arrow-kval'); if(kv) kv.textContent=arrowK;
+  const N=5, PIVOT=3, COL={A:'#4f8ef7',B:'#ff6b6b',C:'#b06eff'};
+  const ballot=(order,big)=>'<div style="display:flex;flex-direction:column;gap:3px">'+order.map(x=>
+    '<span class="pill" style="background:'+COL[x]+';padding:'+(big?'4px 15px':'3px 10px')+';text-align:center'+(big?';font-weight:800':'')+'">'+x+'</span>').join('')+'</div>';
+  let cards='<div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;align-items:flex-end">';
+  for(let i=1;i<=N;i++){ const flip=i<=arrowK, isPivot=i===PIVOT;
+    cards+='<div style="display:flex;flex-direction:column;align-items:center;gap:6px;'+(isPivot?'outline:2px solid var(--gold);outline-offset:4px;border-radius:11px;padding:5px':'')+'">'+
+      '<span class="mono" style="font-size:.64rem;color:'+(isPivot?'var(--gold)':'var(--muted)')+'">Voter '+i+(isPivot?' ★':'')+'</span>'+
+      ballot(flip?['B','A','C']:['A','C','B'],false)+'</div>';
+  }
+  cards+='</div>';
+  const socTop=arrowK>=PIVOT;
+  const soc='<div style="display:flex;flex-direction:column;align-items:center;gap:6px">'+
+    '<span class="mono" style="font-size:.7rem;color:var(--text);font-weight:800;letter-spacing:1px">SOCIETY</span>'+
+    ballot(socTop?['B','A','C']:['A','C','B'],true)+'</div>';
+  const note=arrowK<PIVOT
+    ? '<div class="aiwin" style="margin-top:6px">Society still ranks <b style="color:#ff6b6b">B</b> last</div>'
+    : arrowK===PIVOT
+      ? '<div class="aiwin warn" style="margin-top:6px">⚡ Voter '+PIVOT+'’s flip just jumped society’s <b style="color:#ff6b6b">B</b> from last to first — the <b>pivotal voter</b>.</div>'
+      : '<div class="aiwin" style="margin-top:6px">Society now ranks <b style="color:#ff6b6b">B</b> first</div>';
+  host.innerHTML=cards+
+    '<div style="text-align:center;font-size:1.4rem;color:var(--muted);margin:8px 0 4px">↓</div>'+
+    '<div style="display:flex;justify-content:center">'+soc+'</div>'+
+    '<div style="text-align:center">'+note+'</div>';
+}
+function copyCode(btn){ const cb=btn.closest('.codeblock'), body=cb&&cb.querySelector('.code-body'); if(!body) return;
+  const t=body.textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).catch(()=>{});
+  const o=btn.textContent; btn.textContent='✓ copied'; setTimeout(()=>{btn.textContent=o;},1200); }
+
+function render(){
+  renderProfile();
+  if(cur===1){ mountSteps('sc5','sb5',fRunoff()); mountSteps('sc1','sb1',fTally(pluC,' votes','First-choice tally')); }
+  else if(cur===2) mountSteps('sc2','sb2',fTally(borC,' pts','Borda points'));
+  else if(cur===3){ const q=stv(STV_SEATS).quota; document.getElementById('seatbox').textContent=STV_SEATS; const cb=document.getElementById('candbox'); if(cb)cb.textContent=M; document.getElementById('quotabox').textContent=q+' of '+totalVoters(); mountSteps('sc6','sb6',fSTV()); }
+  else if(cur===4) mountSteps('sc3','sb3',fCond());
+  else if(cur===5) mountSteps('scU','sbU',fUnhappy());
+  else if(cur===6){ mountIIA(); renderArrowPivot(); }
+  else if(cur===7) renderAI();
+  else if(cur===8) renderCompare();
+}
+
+function cmpSetCount(i,v){ cmpData(); CMP_P[i].count=Math.max(0,parseInt(v,10)||0); render(); }
+function cmpAddBloc(){ cmpData(); CMP_P.push({count:10,order:CMP_C.map((_,k)=>k)}); render(); }
+function cmpDelBloc(i){ cmpData(); if(CMP_P.length>1){ CMP_P.splice(i,1); render(); } }
+function cmpMove(i,r,d){ cmpData(); const o=CMP_P[i].order,j=r+d; if(j<0||j>=o.length) return; const x=o[r];o[r]=o[j];o[j]=x; render(); }
+let DRAG=null;
+function cmpDragStart(e,b,r){ DRAG={b:b,r:r}; if(e&&e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',b+':'+r);}catch(_){} } }
+function cmpDE(el,on){ if(el&&el.classList) el.classList.toggle('dragover',!!on); }
+function cmpDrop(e,b,r){ if(e) e.preventDefault(); if(!DRAG||DRAG.b!==b||DRAG.r===r){ DRAG=null; render(); return; } cmpData(); const o=CMP_P[b].order; const x=o.splice(DRAG.r,1)[0]; o.splice(r,0,x); DRAG=null; render(); }
+function renderCompare(){
+  cmpData();
+  const sC=CANDS,sP=PROFILE,sM=M,sK=APPROVE_K,sS=STV_SEATS;
+  CANDS=CMP_C; PROFILE=CMP_P; M=CMP_C.length;
+  APPROVE_K=Math.max(1,Math.min(APPROVE_K,M-1)); STV_SEATS=Math.max(1,Math.min(STV_SEATS,M-1));
+  let frames=null, selTitle='';
+  try{
+    const ed=PROFILE.map((b,i)=>{
+      const pills=b.order.map((ci,r)=>
+        '<span class="dpill" draggable="true" title="drag to reorder" ondragstart="cmpDragStart(event,'+i+','+r+')" ondragenter="cmpDE(this,1)" ondragleave="cmpDE(this,0)" ondragover="event.preventDefault()" ondrop="cmpDrop(event,'+i+','+r+')" style="background:'+CC(ci)+'">'+(r+1)+'. '+CANDS[ci].n+'</span>'+
+        (r<b.order.length-1?'<button class="swapbtn" title="swap these two" onclick="cmpMove('+i+','+r+',1)">⇄</button>':'')).join('');
+      return '<div class="bloc" style="grid-template-columns:auto 1fr auto">'+
+        '<input class="cinput" type="number" min="0" value="'+b.count+'" onchange="cmpSetCount('+i+',this.value)" aria-label="bloc size">'+
+        '<div class="order">'+pills+'</div>'+
+        '<button class="btn" style="padding:6px 11px" '+(PROFILE.length<=1?'disabled':'')+' onclick="cmpDelBloc('+i+')" title="remove this bloc">✕</button></div>';
+    }).join('');
+    const cc=document.getElementById('cmp-cands');
+    if(cc){ cc.innerHTML=CANDS.map((c,ci)=>
+        '<div class="bloc" style="grid-template-columns:auto auto auto;flex:0 0 auto;padding:7px 9px;gap:7px">'+
+        '<span class="dot" style="width:14px;height:14px;background:'+c.c+'"></span>'+
+        '<input class="cinput" style="width:78px;text-align:left;padding:6px 7px" value="'+String(c.n).replace(/"/g,'&quot;')+'" onchange="candName('+ci+',this.value)" aria-label="candidate name">'+
+        '<button class="btn" style="padding:5px 9px" '+(CANDS.length<=1?'disabled':'')+' onclick="candDel('+ci+')" title="remove candidate">✕</button></div>').join('')+
+        '<button class="btn primary" '+(CANDS.length>=6?'disabled':'')+' onclick="candAdd()" style="align-self:center">+ Add candidate</button>'; }
+    document.getElementById('cmp-editor').innerHTML=ed;
+    document.getElementById('cmp-tot').textContent=totalVoters();
+    document.getElementById('cmp-seats').textContent=STV_SEATS;
+    const plu=plurality(), bo=borda();
+    const ordr=a=>[...Array(M).keys()].sort((x,y)=>a[y]-a[x]).map(c=>CANDS[c].n).join(' › ');
+    const cw=condorcet(), ro=plurRunoff(), sv=stv(STV_SEATS), km=kemeny();
+    const rows=[
+      ['Plurality', argmax(plu).idx, ordr(plu), 'plu'],
+      ['Plurality + Runoff', ro.winner, ro.maj1?'outright majority in round 1':'won the two-way runoff', 'ro'],
+      ['Borda', argmax(bo).idx, ordr(bo), 'bor'],
+      ['STV · '+STV_SEATS+' seats', -2, 'elected '+sv.elected.map(c=>CANDS[c].n).join(', ')+' · quota '+sv.quota, 'stv'],
+      ['Condorcet', cw, cw<0?'no winner — majority cycle':'beats every rival head-to-head', 'cond'],
+      ['Kemeny’s Rule', km.winner, km.best.map(c=>CANDS[c].n).join(' › '), 'km']
+    ];
+    let t='<table class="cmp"><tr><th>Method</th><th>Winner</th><th>Detail</th></tr>';
+    rows.forEach(r=>{ const w = r[1]===-2 ? '<span class="muted" style="font-weight:700">multi-winner ↓</span>'
+        : r[1]<0 ? '<span style="color:var(--coral);font-weight:800">none (cycle)</span>'
+        : '<span class="cand" style="font-weight:800"><span class="dot" style="background:'+CC(r[1])+'"></span>'+CANDS[r[1]].n+'</span>';
+      t+='<tr class="'+(CMP_SEL===r[3]?'sel':'')+'" onclick="cmpShow(&#39;'+r[3]+'&#39;)" title="see step-by-step"><td style="font-weight:700">'+r[0]+(CMP_SEL===r[3]?' &#9662;':'')+'</td><td>'+w+'</td><td class="muted" style="font-size:.8rem">'+r[2]+'</td></tr>'; });
+    document.getElementById('cmp-table').innerHTML=t+'</table>';
+    const set=new Set(rows.filter(r=>r[1]>=0).map(r=>r[1]));
+    document.getElementById('cmp-note').innerHTML = (set.size>1
+      ? '<p>⚠ <b style="color:var(--gold)">'+set.size+' different winners</b> from one identical set of ballots.'
+      : '<p>✅ Every single-winner rule agrees on <b>'+CANDS[[...set][0]].n+'</b> for these inputs.')
+      +' <em>Click any method row to watch its step-by-step calculation on this input.</em></p>';
+    if(CMP_SEL){ frames=cmpFrames(CMP_SEL); const rr=rows.find(x=>x[3]===CMP_SEL); selTitle=rr?('Step-by-step · '+rr[0]):''; }
+  } finally {
+    CANDS=sC; PROFILE=sP; M=sM; APPROVE_K=sK; STV_SEATS=sS;
+  }
+  const det=document.getElementById('cmp-detail');
+  if(CMP_SEL && frames && frames.length){ if(det) det.style.display='';
+    const dt=document.getElementById('cmp-dettitle'); if(dt) dt.textContent=selTitle;
+    mountSteps('sccmp','sbcmp',frames);
+  } else if(det){ det.style.display='none'; }
+}
+
+let STV_SEATS=1;
+function setSeats(d){ STV_SEATS=Math.max(1,Math.min(M-1,STV_SEATS+d)); render(); }
+/* add / remove candidates from the MAIN election (CANDS + PROFILE) */
+function mainCandAdd(){ if(CANDS.length>=6) return; const used=CANDS.map(c=>c.c);
+  const col=PALETTE.find(c=>used.indexOf(c)<0)||PALETTE[CANDS.length%PALETTE.length];
+  const ni=CANDS.length; CANDS.push({n:'Cand '+(ni+1),c:col});
+  PROFILE.forEach(b=>b.order.push(ni)); syncCands(); render(); }
+function mainCandDel(){ if(CANDS.length<=2) return; const ci=CANDS.length-1; CANDS.splice(ci,1);
+  PROFILE.forEach(b=>{ b.order=b.order.filter(x=>x!==ci).map(x=>x>ci?x-1:x); }); syncCands(); render(); }
+
+function plurRunoff(){
+  const fp=plurality(), tv=totalVoters();
+  const ord=fp.map((v,i)=>({i,v})).sort((a,b)=>b.v-a.v||a.i-b.i);
+  const maj1 = ord[0].v*2>tv;                 // round-1 leader had an absolute majority (FYI only)
+  const top=[ord[0].i, ord[1].i]; let r=[0,0];   // France always runs Round 2 between the top two
+  PROFILE.forEach(b=>{ (b.order.indexOf(top[0])<b.order.indexOf(top[1])) ? r[0]+=b.count : r[1]+=b.count; });
+  return {r1:fp, top, r2:{cands:top, votes:r}, winner:(r[0]>=r[1]?top[0]:top[1]), maj1};
+}
+
+function stv(seats){
+  const tv=totalVoters(), quota=Math.floor(tv/(seats+1))+1;
+  const status=Array(M).fill(0), w=PROFILE.map(()=>1), elected=[], rounds=[];
+  const tally=()=>{ const t=Array(M).fill(0);
+    PROFILE.forEach((b,bi)=>{ const c=b.order.find(x=>status[x]===0); if(c!==undefined) t[c]+=b.count*w[bi]; }); return t; };
+  let g=0;
+  while(elected.length<seats && g++<60){
+    const t=tally(), hop=[...Array(M).keys()].filter(c=>status[c]===0);
+    if(!hop.length) break;
+    if(hop.length<=seats-elected.length){
+      hop.sort((a,b)=>t[b]-t[a]||a-b).forEach(c=>{status[c]=1;elected.push(c);});
+      rounds.push({t:t.slice(),act:'fill',who:hop.slice()}); break;
+    }
+    const over=hop.filter(c=>t[c]>=quota).sort((a,b)=>t[b]-t[a]||a-b);
+    if(over.length){
+      const c=over[0], surplus=t[c]-quota, frac=t[c]>0?surplus/t[c]:0, contrib=[];
+      PROFILE.forEach((b,bi)=>{ if(b.order.find(x=>status[x]===0)===c) contrib.push(bi); });
+      status[c]=1; elected.push(c); contrib.forEach(bi=>{ w[bi]*=frac; });
+      rounds.push({t:t.slice(),act:'elect',who:[c],surplus:+surplus.toFixed(2)});
+    } else {
+      const lo=hop.slice().sort((a,b)=>t[a]-t[b]||b-a)[0];
+      status[lo]=-1; rounds.push({t:t.slice(),act:'elim',who:[lo]});
+    }
+  }
+  return {quota, rounds, elected};
+}
+
+function permute(a){ if(a.length<=1) return [a]; const r=[];
+  a.forEach((x,i)=>permute(a.slice(0,i).concat(a.slice(i+1))).forEach(p=>r.push([x,...p]))); return r; }
+function kemeny(){
+  const sc=permute([...Array(M).keys()]).map(p=>{ let s=0;
+    for(let i=0;i<M;i++) for(let j=i+1;j<M;j++) s+=pairwise(p[i],p[j])[0]; return {p,s}; })
+    .sort((a,b)=>b.s-a.s);
+  return {best:sc[0].p, score:sc[0].s, top:sc.slice(0,5), winner:sc[0].p[0]};
+}
+
+function renderRunoff(){
+  const R=plurRunoff(), tv=totalVoters();
+  bars('ro-r1',R.r1,null,' votes');
+  const lead=R.r1.map((v,i)=>({i,v})).sort((a,b)=>b.v-a.v)[0];
+  document.getElementById('ro-r1note').innerHTML = R.maj1
+    ? `<strong style="color:var(--green)">${CANDS[lead.i].n}</strong> has an outright majority (${lead.v} of ${tv}) — elected in Round 1, no runoff needed.`
+    : `No majority (lead ${lead.v} of ${tv}). Top two advance: <strong>${CANDS[R.top[0]].n}</strong> &amp; <strong>${CANDS[R.top[1]].n}</strong>.`;
+  const sec=document.getElementById('ro-r2sec');
+  if(R.maj1){ sec.style.display='none'; }
+  else { sec.style.display=''; const v=Array(M).fill(0); v[R.r2.cands[0]]=R.r2.votes[0]; v[R.r2.cands[1]]=R.r2.votes[1]; bars('ro-r2',v,null,' votes'); }
+  document.getElementById('ro-win').innerHTML=`<div class="win-tag">🏆 Winner: ${CANDS[R.winner].n}</div>`;
+}
+
+function renderSTV(){
+  const S=stv(STV_SEATS), tv=totalVoters();
+  document.getElementById('seatbox').textContent=STV_SEATS;
+  document.getElementById('quotabox').textContent=S.quota+' of '+tv;
+  let html='';
+  S.rounds.forEach((rd,i)=>{
+    const lines=[...Array(M).keys()].map(c=>{
+      const val=rd.t[c]||0, mx=Math.max(1,...rd.t), hit=rd.act==='elect'&&rd.who.includes(c);
+      const dim=val===0?'opacity:.35':'';
+      return `<div class="barrow" style="${dim}"><span class="cand"><span class="dot" style="background:${CANDS[c].c}"></span>${CANDS[c].n}</span>
+        <div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:${(val/mx*100).toFixed(1)}%;background:${hit?'var(--green)':CANDS[c].c}"></div></div>
+        <span class="mono" style="text-align:right;font-weight:700">${val.toFixed(2).replace(/\.00$/,'')}</span></div>`; }).join('');
+    const act = rd.act==='elect' ? `<span style="color:var(--green)">✔ Elect ${CANDS[rd.who[0]].n}</span> — surplus ${rd.surplus} transfers (fractionally)`
+              : rd.act==='elim' ? `<span style="color:var(--coral)">✘ Eliminate ${CANDS[rd.who[0]].n}</span> — ballots transfer at full value`
+              : `Seats filled by remaining: ${rd.who.map(c=>CANDS[c].n).join(', ')}`;
+    html+=`<div class="round"><div class="rh">Round ${i+1} · quota ${S.quota}</div>${lines}<div class="muted" style="font-size:.76rem;margin-top:8px">${act}</div></div>`;
+  });
+  document.getElementById('stv-rounds').innerHTML=html;
+  document.getElementById('stv-win').innerHTML=`<div class="win-tag">🏆 Elected (${S.elected.length}): ${S.elected.map(c=>CANDS[c].n).join(' · ')}</div>`;
+}
+
+function renderKemeny(){
+  const K=kemeny();
+  const rankPills=p=>p.map((c,r)=>`<span class="pill" style="background:${CANDS[c].c}">${r+1}. ${CANDS[c].n}</span>`+(r<M-1?'<span class="sep">›</span>':'')).join('');
+  document.getElementById('km-best').innerHTML=`<div class="order" style="margin:4px 0 6px">${rankPills(K.best)}</div>
+    <div class="muted" style="font-size:.78rem">Kemeny score <strong style="color:var(--text)">${K.score}</strong> — maximises agreement with the voters' pairwise majorities.</div>`;
+  document.getElementById('km-win').innerHTML=`<div class="win-tag">🏆 Winner: ${CANDS[K.winner].n} (top of the consensus ranking)</div>`;
+  let t='<tr><th>Ranking</th><th class="mono" style="text-align:right">Score</th></tr>';
+  K.top.forEach((o,i)=>{ t+=`<tr><td>${o.p.map(c=>CANDS[c].n).join(' › ')}</td><td class="mono" style="text-align:right;${i===0?'color:var(--green);font-weight:800':''}">${o.s}</td></tr>`; });
+  document.getElementById('km-table').innerHTML=t;
+}
+function renderCond(){
+  let h='<tr><th>beats →</th>'+CANDS.map(c=>`<th class="mono">${c.n}</th>`).join('')+'</tr>';
+  for(let a=0;a<M;a++){ h+=`<tr><th class="mono" style="text-align:left">${CANDS[a].n}</th>`;
+    for(let b=0;b<M;b++){ if(a===b){ h+='<td class="lcell">—</td>'; continue; }
+      const [A,B]=pairwise(a,b); h+=`<td class="${A>B?'wcell':'lcell'}">${A}–${B}</td>`; }
+    h+='</tr>'; }
+  document.getElementById('cond-matrix').innerHTML=h;
+  const w=condorcet();
+  document.getElementById('cond-win').innerHTML = w<0
+    ? `<div class="win-tag no-win">⚠ No Condorcet winner — majorities cycle (paradox)</div>`
+    : `<div class="win-tag">🏆 Condorcet winner: ${CANDS[w].n} (beats everyone head-to-head)</div>`;
+}
+function renderIRV(){
+  const {rounds,winner}=irv(), tv=totalVoters(); let h='';
+  rounds.forEach((rd,i)=>{
+    h+=`<div class="round"><div class="rh">Round ${i+1}</div>`+
+      rd.tallies.map(o=>{ const maj=o.v*2>tv;
+        return `<div class="barrow"><span class="${rd.elim===o.c?'elim':''}">${CANDS[o.c].n}</span>
+        <div style="background:rgba(255,255,255,.05);border-radius:6px"><div class="bar" style="width:${(o.v/tv*100).toFixed(1)}%;background:${maj?'var(--green)':CANDS[o.c].c}"></div></div>
+        <span class="mono" style="text-align:right;font-weight:700">${o.v}</span></div>`; }).join('')+
+      (rd.elim!=null?`<div class="muted" style="font-size:.76rem;margin-top:8px">↓ Eliminate <strong style="color:var(--coral)">${CANDS[rd.elim].n}</strong>, transfer ballots to next choice</div>`:'')+
+      `</div>`;
+  });
+  document.getElementById('irv-rounds').innerHTML=h;
+  document.getElementById('irv-win').innerHTML=`<div class="win-tag">🏆 Winner: ${CANDS[winner].n} (majority reached)</div>`;
+}
+render();
+</script>
+</body>
+</html>
