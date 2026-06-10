@@ -1057,9 +1057,16 @@ section{margin-bottom:44px}
     surrogate:    L<sub>1</sub> = r<sub>t</sub>(<span class="sym-th">θ</span>) · <span class="sym-adv">A<sub>t</sub></span>
                   L<sub>2</sub> = clip( r<sub>t</sub>(<span class="sym-th">θ</span>), 1−ε, 1+ε ) · <span class="sym-adv">A<sub>t</sub></span>
 
-    PPO loss:     L<sup>CLIP</sup> = E [ <span class="sym-muted">min</span>( L<sub>1</sub>, L<sub>2</sub> ) ]
+    PPO-clip:     L<sup>CLIP</sup> = E [ <span class="sym-muted">min</span>( L<sub>1</sub>, L<sub>2</sub> ) ]
 
                   ε ≈ 0.2  ⇒ "no update is allowed to move the ratio more than 20%"</div>
+    </div>
+    <div class="glass" style="margin-top:14px">
+      <p>Two ideas, that's the whole trick:</p>
+      <ul style="margin:8px 0 0;padding-left:20px;line-height:1.7">
+        <li><b style="color:var(--teal)">ratio r<sub>t</sub></b> &mdash; instead of A2C's raw <span class="sym-pi">log π</span>, PPO measures how much the <em>new</em> policy differs from the <em>old</em> one that collected the batch: <b>r<sub>t</sub> = π<sub>θ</sub> / π<sub>θ_old</sub></b>. r<sub>t</sub> = 1 means "unchanged"; r<sub>t</sub> &gt; 1 means the new policy makes that action more likely.</li>
+        <li><b style="color:var(--coral)">clip</b> &mdash; the surrogate r<sub>t</sub>·<span class="sym-adv">A<sub>t</sub></span> would happily push r<sub>t</sub> far from 1 on a single good batch and blow up the policy. So PPO also computes the <em>clipped</em> version (r<sub>t</sub> pinned to [1−ε, 1+ε]) and keeps the <b style="color:var(--muted)">min</b> of the two. Once a step has moved the ratio past ±ε, the clip flattens the gradient &mdash; there's no more reward for moving further. That's the trust region, enforced with one <span class="sym-muted">min</span>.</li>
+      </ul>
     </div>
   </section>
 
@@ -1393,7 +1400,7 @@ replay buffer 𝓓 ← ∅
 
 <span class="kw">for</span> each environment step:
     <span class="cmt"># ── ACT with exploration noise & STORE ─────────────</span>
-    a ← <span class="pc-use"><span class="sym-pi">μθ</span>(s)</span> + 𝒩(<span class="num">0</span>, σ)                    <span class="cmt"># deterministic action + Gaussian noise</span>
+    a ← <span class="pc-use"><span class="sym-pi">μθ</span>(s)</span> + <span class="pc-new">𝒩(<span class="num">0</span>, σ)</span>                    <span class="cmt"># ▲ new in DDPG: deterministic action + Gaussian exploration noise</span>
     s′, r, done ← env.step(a)
     𝓓.append( (s, a, r, s′, done) ) ;  s ← s′
 
@@ -2779,7 +2786,7 @@ function makeCC(P){ return { P:P, onEp:null, env:'ll', ep:0, running:false, time
     else if(m.t>1600){ m.x=-0.5; m.v=0; m.t=0; }
     if(m.flash>0)m.flash--; },
   draw_mtn(ctx,W,H){ const m=this.mtn; if(!m) return;
-    const X=x=>20+(x+1.2)/1.8*(W-40), GY=x=>H-46-Math.sin(3*x)*72;
+    const X=x=>20+(x+1.2)/1.8*(W-40), GY=x=>H-110-Math.sin(3*x)*72;
     ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=2; ctx.beginPath();
     for(let i=0;i<=120;i++){ const x=-1.2+1.8*i/120; const px=X(x),py=GY(x); i?ctx.lineTo(px,py):ctx.moveTo(px,py); } ctx.stroke();
     ctx.fillStyle='rgba(0,212,170,.06)'; ctx.lineTo(X(0.6),H); ctx.lineTo(X(-1.2),H); ctx.closePath(); ctx.fill();
