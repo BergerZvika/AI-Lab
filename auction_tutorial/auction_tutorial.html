@@ -2699,25 +2699,26 @@ function switchTab(n){
 /* ══ Model ══ */
 const PALETTE=['#4f8ef7','#00d4aa','#ffd43b','#b06eff','#ff6b6b','#51cf66','#22d3ee','#f783ac','#ffb86b','#a3e635'];
 let BIDDERS=[
-  {n:'Alice',  c:'#4f8ef7', v:80},
-  {n:'Bob',    c:'#00d4aa', v:60},
-  {n:'Carol',  c:'#ffd43b', v:45},
-  {n:'Dave',   c:'#b06eff', v:25}
+  {n:'Alice',  c:'#4f8ef7', v:80, b:60},
+  {n:'Bob',    c:'#00d4aa', v:60, b:45},
+  {n:'Carol',  c:'#ffd43b', v:45, b:34},
+  {n:'Dave',   c:'#b06eff', v:25, b:19}
 ];
 const PRESETS={
-  classic:[{n:'Alice',c:'#4f8ef7',v:80},{n:'Bob',c:'#00d4aa',v:60},{n:'Carol',c:'#ffd43b',v:45},{n:'Dave',c:'#b06eff',v:25}],
-  close:[{n:'Alice',c:'#4f8ef7',v:78},{n:'Bob',c:'#00d4aa',v:76},{n:'Carol',c:'#ffd43b',v:72},{n:'Dave',c:'#b06eff',v:40}],
-  runaway:[{n:'Whale',c:'#ff6b6b',v:95},{n:'Bob',c:'#00d4aa',v:30},{n:'Carol',c:'#ffd43b',v:22},{n:'Dave',c:'#b06eff',v:18}],
-  many:[{n:'B1',c:'#4f8ef7',v:70},{n:'B2',c:'#00d4aa',v:62},{n:'B3',c:'#ffd43b',v:55},{n:'B4',c:'#b06eff',v:48},
-        {n:'B5',c:'#ff6b6b',v:40},{n:'B6',c:'#51cf66',v:33},{n:'B7',c:'#f783ac',v:25},{n:'B8',c:'#22d3ee',v:18}]
+  classic:[{n:'Alice',c:'#4f8ef7',v:80,b:60},{n:'Bob',c:'#00d4aa',v:60,b:45},{n:'Carol',c:'#ffd43b',v:45,b:34},{n:'Dave',c:'#b06eff',v:25,b:19}],
+  close:[{n:'Alice',c:'#4f8ef7',v:78,b:59},{n:'Bob',c:'#00d4aa',v:76,b:57},{n:'Carol',c:'#ffd43b',v:72,b:54},{n:'Dave',c:'#b06eff',v:40,b:30}],
+  runaway:[{n:'Whale',c:'#ff6b6b',v:95,b:71},{n:'Bob',c:'#00d4aa',v:30,b:23},{n:'Carol',c:'#ffd43b',v:22,b:17},{n:'Dave',c:'#b06eff',v:18,b:14}],
+  many:[{n:'B1',c:'#4f8ef7',v:70,b:61},{n:'B2',c:'#00d4aa',v:62,b:54},{n:'B3',c:'#ffd43b',v:55,b:48},{n:'B4',c:'#b06eff',v:48,b:42},
+        {n:'B5',c:'#ff6b6b',v:40,b:35},{n:'B6',c:'#51cf66',v:33,b:29},{n:'B7',c:'#f783ac',v:25,b:22},{n:'B8',c:'#22d3ee',v:18,b:16}]
 };
 let K_UNITS=2;
 function loadPreset(k){ BIDDERS=PRESETS[k].map(b=>({...b})); K_UNITS=Math.min(K_UNITS,Math.max(1,BIDDERS.length-1)); render(); }
 function addBidder(){ if(BIDDERS.length>=10) return; const used=BIDDERS.map(b=>b.c);
   const col=PALETTE.find(c=>used.indexOf(c)<0)||PALETTE[BIDDERS.length%PALETTE.length];
-  BIDDERS.push({n:'B'+(BIDDERS.length+1),c:col,v:30}); render(); }
+  BIDDERS.push({n:'B'+(BIDDERS.length+1),c:col,v:30,b:23}); render(); }
 function delBidder(i){ if(BIDDERS.length<=2) return; BIDDERS.splice(i,1); K_UNITS=Math.min(K_UNITS,Math.max(1,BIDDERS.length-1)); render(); }
 function setV(i,v){ const n=Math.max(0,Math.min(1000,parseFloat(v)||0)); BIDDERS[i].v=n; render(); }
+function setB(i,v){ const n=Math.max(0,Math.min(1000,parseFloat(v)||0)); BIDDERS[i].b=n; render(); }
 function setName(i,v){ v=(v||'').trim(); if(v) BIDDERS[i].n=v; render(); }
 function setK(d){ K_UNITS=Math.max(1,Math.min(BIDDERS.length-1,K_UNITS+d)); render(); }
 const N=()=>BIDDERS.length;
@@ -2754,6 +2755,7 @@ function renderBidders(){
     '<span class="dot" style="width:16px;height:16px;background:'+b.c+'"></span>'+
     '<input class="cinput cname" value="'+String(b.n).replace(/"/g,'&quot;')+'" onchange="setName('+i+',this.value)">'+
     '<div style="display:flex;flex-direction:column;gap:2px"><span class="lbl">v</span><input class="cinput" type="number" min="0" step="1" value="'+fmt(b.v)+'" onchange="setV('+i+',this.value)"></div>'+
+    '<div style="display:flex;flex-direction:column;gap:2px"><span class="lbl">b</span><input class="cinput" type="number" min="0" step="1" value="'+fmt(b.b!=null?b.b:b.v)+'" onchange="setB('+i+',this.value)"></div>'+
     '<button class="btn btn-mini" '+(BIDDERS.length<=2?'disabled':'')+' onclick="delBidder('+i+')" title="remove">✕</button>'+
     '</div>'; }).join('');
   const e=document.getElementById('bidder-editor'); if(e) e.innerHTML=html;
