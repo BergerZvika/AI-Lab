@@ -2723,6 +2723,8 @@ function setName(i,v){ v=(v||'').trim(); if(v) BIDDERS[i].n=v; render(); }
 function setK(d){ K_UNITS=Math.max(1,Math.min(BIDDERS.length-1,K_UNITS+d)); render(); }
 const N=()=>BIDDERS.length;
 const sortedDesc=()=>BIDDERS.map((b,i)=>({...b,i})).sort((a,b)=>b.v-a.v||a.i-b.i);
+const bidOf=i=>{const b=BIDDERS[i];return b.b!=null?b.b:b.v;};
+const sortedByBid=()=>BIDDERS.map((b,i)=>({...b,i,bid:(b.b!=null?b.b:b.v)})).sort((a,b)=>b.bid-a.bid||a.i-b.i);
 
 /* ══ Bid strategies ══ */
 const truthful=v=>v;
@@ -3768,23 +3770,23 @@ const FORMATS_SEALED=[
   {id:'fp',    name:'First-Price', sub:'sealed-bid',           c:'#4f8ef7',
    rule:'Sealed bids opened simultaneously — highest wins, pays own bid.',
    alloc:'highest bid',pays:'own bid (shaded)', strategy:'BNE: v·(n−1)/n',    dsic:false, kind:'sealed',
-   outcome:function(){const F=fpsb();return{winner:F.winner,pay:F.price};}},
+   outcome:function(){const s=sortedByBid();return{winner:s[0].i,pay:s[0].bid};}},
   {id:'vic',   name:'second-price (Vickrey)',     sub:'second-price sealed',  c:'#ffd43b',
    rule:'Sealed bids — highest wins, pays the second-highest bid.',
-   alloc:'highest bid',pays:'v₍₂₎ (2nd bid)',   strategy:'truthful · b = v',  dsic:true,  kind:'sealed',
-   outcome:function(){const E=english();return{winner:E.winner,pay:E.price};}},
+   alloc:'highest bid',pays:'b₍₂₎ (2nd bid)',   strategy:'truthful · b = v',  dsic:true,  kind:'sealed',
+   outcome:function(){const s=sortedByBid();return{winner:s[0].i,pay:s[1]?s[1].bid:0,pricesetterI:s[1]?s[1].i:-1};}},
   {id:'tp',    name:'Third-Price', sub:'k-th price · k = 3',   c:'#ff8c66',
    rule:'Highest bid wins, pays the third-highest bid. No DSIC — bidders over-bid.',
-   alloc:'highest bid',pays:'v₍₃₎ (3rd bid)',   strategy:'over-bid · v·n/(n−2)',dsic:false,kind:'sealed',
+   alloc:'highest bid',pays:'b₍₃₎ (3rd bid)',   strategy:'over-bid · v·n/(n−2)',dsic:false,kind:'sealed',
    outcome:function(){
      if(BIDDERS.length<3) return null;
-     const s=BIDDERS.map((b,i)=>({i,v:b.v})).sort((a,b)=>b.v-a.v);
-     return{winner:s[0].i,pay:s[2].v,pricesetterI:s[2].i};
+     const s=sortedByBid();
+     return{winner:s[0].i,pay:s[2].bid,pricesetterI:s[2].i};
    }},
   {id:'ap',    name:'All-Pay',     sub:'contest · lobbying',   c:'#ff6b6b',
    rule:'Highest bid wins the item — but EVERY bidder forfeits their bid, win or lose.',
    alloc:'highest bid',pays:'own bid · ALL pay',strategy:'BNE: v·(n−1)/n',   dsic:false, kind:'allpay',
-   outcome:function(){const A=allpay();return{winner:A.winner,pay:A.price,revenue:A.revenue};}}
+   outcome:function(){const s=sortedByBid();const rev=s.reduce((a,o)=>a+o.bid,0);return{winner:s[0].i,pay:s[0].bid,revenue:rev};}}
 ];
 
 function renderFormatsTable(targetId, list){
@@ -3815,10 +3817,10 @@ function miniStage(F){
   const winI = out?out.winner:-1;
   const pay  = out?out.pay:0;
   let psetI=-1;
-  if(F.id==='eng'||F.id==='jap'||F.id==='vic'){
+  if(F.id==='eng'||F.id==='jap'){
     const s=BIDDERS.map((b,i)=>({i,v:b.v})).sort((a,b)=>b.v-a.v);
     psetI=s[1]?s[1].i:-1;
-  } else if(F.id==='tp' && out){
+  } else if((F.id==='tp'||F.id==='vic') && out){
     psetI=out.pricesetterI;
   }
   const podiums=BIDDERS.map((b,i)=>{
